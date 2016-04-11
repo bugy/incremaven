@@ -68,3 +68,4 @@ assembled_content = optimize_imports(assembled_content)
 assembled_content = string_utils.remove_empty_lines(assembled_content)
 
 file_utils.write_file("build/smart-build.py", assembled_content)
+file_utils.make_executable("build/smart-build.py")

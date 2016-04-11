@@ -2,6 +2,8 @@ import os.path
 import time
 import datetime
 import pathlib
+import os
+import stat
 
 
 def modification_date(file_path):
@@ -34,3 +36,7 @@ def write_file(filename, content):
 
     with open(filename, "w") as file:
         file.write(content)
+
+def make_executable(filename):
+    st = os.stat(filename)
+    os.chmod(filename, st.st_mode | stat.S_IEXEC)

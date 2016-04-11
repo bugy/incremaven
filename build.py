@@ -45,7 +45,7 @@ for file in important_files:
             pom_paths.add(pom_path)
 
             jar_update = file_utils.modification_date(file)
-            if ((pom_path not in [last_updates]) or (last_updates[pom_path] > jar_update)):
+            if ((pom_path not in last_updates) or (last_updates[pom_path] < jar_update)):
                 last_updates[pom_path] = jar_update
 
             break
