@@ -40,7 +40,7 @@ def build_artifact_path(project, maven_repo_path):
     return artifact_path.joinpath("{}-{}.jar".format(project.artifact_id, project.version))
 
 
-def rebuild(parent_project_path, projects):
+def rebuild(parent_project_path, projects, mvn_opts):
     if not projects:
         six.print_("No projects to build, skipping")
         return None
@@ -48,7 +48,7 @@ def rebuild(parent_project_path, projects):
     project_names = [(":" + project.artifact_id) for project in projects]
     project_names_string = ",".join(project_names)
 
-    process_utils.invoke("mvn clean install -X -fae -pl {}".format(project_names_string)
+    process_utils.invoke("mvn clean install {} -pl {}".format(mvn_opts, project_names_string)
                          , parent_project_path)
 
 

@@ -3,22 +3,25 @@ import utils.file_utils as file_utils
 import utils.svn_utils as svn_utils
 import utils.mvn_utils as mvn_utils
 import six
-import getopt
 import sys
 import os.path
+import argparse
 
-try:
-    opts, args = getopt.getopt(sys.argv[1:], "r:")
-except getopt.GetoptError:
-    sys.exit(2)
+parser = argparse.ArgumentParser(description="Smart build of complex (maven) projects.")
+parser.add_argument("-r", "--rootPath", help="path to the root project")
+parser.add_argument("-m", "--maven", help="maven parameters to pass to mvn command")
+args = vars(parser.parse_args())
 
-ROOT_PROJECT_PATH = "."
-for opt, arg in opts:
-    if opt == '-r':
-        ROOT_PROJECT_PATH = arg
+if (args["rootPath"]):
+    ROOT_PROJECT_PATH = args["rootPath"]
+else:
+    ROOT_PROJECT_PATH = "."
+
+MVN_OPTS = args["maven"]
 
 ROOT_PROJECT_PATH = file_utils.normalize_path(ROOT_PROJECT_PATH)
 six.print_("Root project path: " + ROOT_PROJECT_PATH)
+six.print_("Additional maven options: " + str(MVN_OPTS))
 
 rootPom = Path(ROOT_PROJECT_PATH).joinpath("pom.xml")
 if (not rootPom.exists()):
@@ -76,4 +79,4 @@ for project in projects:
             to_rebuild.append(project)
 
 six.print_("Rebuilding projects...")
-mvn_utils.rebuild(ROOT_PROJECT_PATH, to_rebuild)
+mvn_utils.rebuild(ROOT_PROJECT_PATH, to_rebuild, MVN_OPTS)
