@@ -48,7 +48,7 @@ def optimize_imports(assembled_content):
 
     import_lines = set(get_import_lines(assembled_content))
     for import_line in import_lines:
-        result = result.replace(import_line, "")
+        result = result.replace(import_line + "\n", "")
 
     result = "\n".join(import_lines) + result
     return result

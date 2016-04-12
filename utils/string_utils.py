@@ -1,4 +1,5 @@
 import re
+import six
 
 
 def contains_whole_word(text, word):
@@ -13,3 +14,16 @@ def remove_empty_lines(text):
                             line.strip() != '',
                             lines)
     return "\n".join(filtered_lines)
+
+def differ(text1, text2, trim):
+    if (trim):
+        text1 = trim_text(text1)
+        text2 = trim_text(text2)
+        
+    return text1 != text2
+    
+def trim_text(text):
+    lines = text.split("\n")
+    trimmed_lines = [line.strip() for line in lines]
+    trimmed_text = "\n".join(trimmed_lines)
+    return remove_empty_lines(text)
