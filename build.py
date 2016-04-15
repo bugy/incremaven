@@ -61,8 +61,6 @@ for file in important_files:
             else:
                 file_update = file_utils.deletion_date(file)
 
-            six.print_("{} | modified: {}".format(file, file_update))
-
             if ((pom_path not in last_updates) or (last_updates[pom_path] < file_update)):
                 last_updates[pom_path] = file_update
 
