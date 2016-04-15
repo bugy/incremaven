@@ -1,14 +1,30 @@
-import os.path
-import time
 import datetime
-import pathlib
 import os
+import os.path
+import pathlib
 import stat
+import time
 
 
 def modification_date(file_path):
     timeString = time.ctime(os.path.getmtime(file_path))
     return datetime.datetime.strptime(timeString, "%a %b %d %H:%M:%S %Y")
+
+
+def deletion_date(file_path):
+    path = pathlib.Path(file_path)
+
+    while (not path.exists()):
+        path = pathlib.Path(path.parent)
+
+        if (is_root(str(path))):
+            raise Exception("Couldn't find parent folder for the deleted file " + file_path)
+
+    return modification_date(str(path))
+
+
+def is_root(path):
+    return os.path.dirname(path) == path
 
 
 def normalize_path(pathString):
@@ -36,6 +52,7 @@ def write_file(filename, content):
 
     with open(filename, "w") as file:
         file.write(content)
+
 
 def make_executable(filename):
     st = os.stat(filename)

@@ -1,8 +1,9 @@
 # This script assembles all the scripts (build.py and its local imports)
 # to a single file build/smart-build.py
 
-import utils.file_utils as file_utils
 import pathlib
+
+import utils.file_utils as file_utils
 import utils.string_utils as string_utils
 
 
@@ -50,7 +51,7 @@ def optimize_imports(assembled_content):
     for import_line in import_lines:
         result = result.replace(import_line + "\n", "")
 
-    result = "\n".join(import_lines) + result
+    result = "\n".join(import_lines) + "\n" + result
     return result
 
 

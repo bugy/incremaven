@@ -1,11 +1,12 @@
-from pathlib import Path
-import utils.file_utils as file_utils
-import utils.svn_utils as svn_utils
-import utils.mvn_utils as mvn_utils
+import argparse
+import os.path
 import six
 import sys
-import os.path
-import argparse
+from pathlib import Path
+
+import utils.file_utils as file_utils
+import utils.mvn_utils as mvn_utils
+import utils.svn_utils as svn_utils
 
 parser = argparse.ArgumentParser(description="Smart build of complex (maven) projects.")
 parser.add_argument("-r", "--rootPath", help="path to the root project", default=".")
@@ -28,9 +29,13 @@ if (not rootPom.exists()):
 
 MAVEN_REPO_PATH = mvn_utils.repo_path()
 
+
+def is_important(file_path):
+    return (file_path.endswith(".java") or file_path.endswith("pom.xml"))
+
+
 changed_files = svn_utils.changed_files(ROOT_PROJECT_PATH)
-important_files = filter(lambda file: (file.endswith(".java") or file.endswith("pom.xml")),
-                         changed_files)
+important_files = filter(is_important, changed_files)
 
 pom_paths = set([])
 last_updates = {}
@@ -49,8 +54,15 @@ for file in important_files:
             if (file.endswith("pom.xml") and (pom_path not in last_updates)):
                 if (not mvn_utils.requires_jar(str(pom_path))):
                     no_jar_required_poms.append(pom_path)
-            
-            file_update = file_utils.modification_date(file)
+
+            file_update = None
+            if (not changed_files[file]):
+                file_update = file_utils.modification_date(file)
+            else:
+                file_update = file_utils.deletion_date(file)
+
+            six.print_("{} | modified: {}".format(file, file_update))
+
             if ((pom_path not in last_updates) or (last_updates[pom_path] < file_update)):
                 last_updates[pom_path] = file_update
 
@@ -67,7 +79,7 @@ for path in pom_paths:
     projects.append(project)
 
     last_projects_updates[project] = last_updates[path]
-    
+
     if (path in no_jar_required_poms):
         only_pom_projects.append(project)
 
@@ -76,7 +88,7 @@ to_rebuild = []
 for project in projects:
     only_pom = (project in only_pom_projects)
     build_date = mvn_utils.artifact_build_date(project, MAVEN_REPO_PATH, only_pom)
-    
+
     if ((build_date is None) or (build_date < last_projects_updates[project])):
         six.print_(project, "needs rebuild. Last update: " + str(build_date))
         to_rebuild.append(project)
