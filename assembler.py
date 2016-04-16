@@ -1,5 +1,5 @@
 # This script assembles all the scripts (build.py and its local imports)
-# to a single file build/smart-build.py
+# to a single file build/rebuild.py
 
 import pathlib
 
@@ -68,5 +68,5 @@ while (next_content):
 assembled_content = optimize_imports(assembled_content)
 assembled_content = string_utils.remove_empty_lines(assembled_content)
 
-file_utils.write_file("build/smart-build.py", assembled_content)
-file_utils.make_executable("build/smart-build.py")
+file_utils.write_file("build/rebuild.py", assembled_content)
+file_utils.make_executable("build/rebuild.py")

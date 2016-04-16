@@ -8,7 +8,7 @@ import utils.file_utils as file_utils
 import utils.mvn_utils as mvn_utils
 import utils.svn_utils as svn_utils
 
-parser = argparse.ArgumentParser(description="Smart build of complex (maven) projects.")
+parser = argparse.ArgumentParser(description="Rebuild of complex (maven) projects.")
 parser.add_argument("-r", "--rootPath", help="path to the root project", default=".")
 parser.add_argument("-m", "--maven", help="maven parameters to pass to mvn command", default="")
 args = vars(parser.parse_args())

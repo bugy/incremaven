@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-    <configuration default="false" name="smart-build" type="PythonConfigurationType" factoryName="Python">
+    <configuration default="false" name="rebuild" type="PythonConfigurationType" factoryName="Python">
         <option name="INTERPRETER_OPTIONS" value=""/>
         <option name="PARENT_ENVS" value="true"/>
         <envs>
@@ -10,7 +10,7 @@
         <option name="IS_MODULE_SDK" value="false"/>
         <option name="ADD_CONTENT_ROOTS" value="true"/>
         <option name="ADD_SOURCE_ROOTS" value="true"/>
-        <option name="SCRIPT_NAME" value="$USER_HOME$/smart-build.py"/>
+        <option name="SCRIPT_NAME" value="$USER_HOME$/rebuild.py"/>
         <option name="PARAMETERS" value=""/>
         <option name="SHOW_COMMAND_LINE" value="false"/>
         <method/>
