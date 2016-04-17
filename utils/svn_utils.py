@@ -1,5 +1,7 @@
+import utils.process_utils as process_utils
+
 def changed_files(path):
-    status_info = invoke(["svn", "status", path])
+    status_info = process_utils.invoke(["svn", "status", path])
     all_lines = status_info.split("\n")
 
     result = {}

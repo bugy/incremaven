@@ -29,67 +29,67 @@ if (not rootPom.exists()):
 
 MAVEN_REPO_PATH = mvn_utils.repo_path()
 
-
 def is_important(file_path):
     return (file_path.endswith(".java") or file_path.endswith("pom.xml"))
 
+
+def get_unique_name(root_project_path):
+    result = root_project_path.replace("/", "_")
+    return result
 
 changed_files = svn_utils.changed_files(ROOT_PROJECT_PATH)
 important_files = filter(is_important, changed_files)
 
 pom_paths = set([])
-last_updates = {}
-no_jar_required_poms = []
 
 for file in important_files:
-    path = Path(file)
-    parent_path = path.parent
+    pom_path = Path(file)
+    parent_path = pom_path.parent
 
     while (parent_path and (parent_path != ROOT_PROJECT_PATH)):
-        pom_path = Path(parent_path).joinpath("pom.xml")
+        pom_path_str = Path(parent_path).joinpath("pom.xml")
 
-        if (pom_path.exists()):
-            pom_paths.add(pom_path)
-
-            if (file.endswith("pom.xml") and (pom_path not in last_updates)):
-                if (not mvn_utils.requires_jar(str(pom_path))):
-                    no_jar_required_poms.append(pom_path)
-
-            file_update = None
-            if (not changed_files[file]):
-                file_update = file_utils.modification_date(file)
-            else:
-                file_update = file_utils.deletion_date(file)
-
-            if ((pom_path not in last_updates) or (last_updates[pom_path] < file_update)):
-                last_updates[pom_path] = file_update
-
+        if (pom_path_str.exists()):
+            pom_paths.add(pom_path_str)
             break
 
         parent_path = parent_path.parent
 
+new_in_progress = [str(pom_path) for pom_path in pom_paths]
+
+in_progress_file = "~/.rebuilder/" + get_unique_name(ROOT_PROJECT_PATH)
+prev_in_progress = []
+if (file_utils.exists(in_progress_file)):
+    prev_in_progress = file_utils.read_file(in_progress_file).split("\n")
+    prev_in_progress = filter(lambda line: line != "", prev_in_progress)
+
+for pom_path_str in prev_in_progress:
+    pom_path = Path(pom_path_str)
+    pom_paths.add(pom_path)
+
+pom_paths_str = [str(pom_path) for pom_path in pom_paths]
+file_utils.write_file(in_progress_file, "\n".join(pom_paths_str))
+
 projects = []
-last_projects_updates = {}
-only_pom_projects = []
 
-for path in pom_paths:
-    project = mvn_utils.create_project(str(path))
+for pom_path in pom_paths:
+    project = mvn_utils.create_project(str(pom_path))
     projects.append(project)
-
-    last_projects_updates[project] = last_updates[path]
-
-    if (path in no_jar_required_poms):
-        only_pom_projects.append(project)
 
 to_rebuild = []
 
 for project in projects:
-    only_pom = (project in only_pom_projects)
+    only_pom = not (mvn_utils.requires_jar(project.build_file_path))
     build_date = mvn_utils.artifact_build_date(project, MAVEN_REPO_PATH, only_pom)
 
-    if ((build_date is None) or (build_date < last_projects_updates[project])):
-        six.print_(project, "needs rebuild. Last update: " + str(build_date))
+    project_src_path = Path(project.build_file_path).parent
+    src_modification = file_utils.last_modification(str(project_src_path))
+
+    if ((build_date is None) or (build_date < src_modification)):
+        six.print_(project, "needs rebuild. Last jar update: " + str(build_date))
         to_rebuild.append(project)
 
 six.print_("Rebuilding projects...")
 mvn_utils.rebuild(ROOT_PROJECT_PATH, to_rebuild, MVN_OPTS)
+
+file_utils.write_file(in_progress_file, "\n".join(new_in_progress))

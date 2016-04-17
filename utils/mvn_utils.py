@@ -6,7 +6,6 @@ import utils.string_utils as string_utils
 import six
 import os.path
 import pathlib
-import filecmp
 import datetime
 
 def create_project(pom_path):

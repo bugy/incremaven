@@ -39,7 +39,7 @@ def read_new_content(existing_content, imported_files):
 
         if (not (import_name in imported_files)):
             imported_files.append(import_name)
-            additional_content += file_utils.read_file(import_path)
+            additional_content += file_utils.read_file(import_path) + "\n"
 
     return (updated_existing_content, additional_content)
 
@@ -63,7 +63,7 @@ assembled_content = ""
 next_content = build_file_content
 while (next_content):
     (processed_content, next_content) = read_new_content(next_content, imported_files)
-    assembled_content = processed_content + assembled_content
+    assembled_content = processed_content + "\n" + assembled_content
 
 assembled_content = optimize_imports(assembled_content)
 assembled_content = string_utils.remove_empty_lines(assembled_content)
