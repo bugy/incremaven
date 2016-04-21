@@ -29,6 +29,7 @@ if (not rootPom.exists()):
 
 MAVEN_REPO_PATH = mvn_utils.repo_path()
 
+
 def is_important(file_path):
     return (file_path.endswith(".java") or file_path.endswith("pom.xml"))
 
@@ -36,6 +37,7 @@ def is_important(file_path):
 def get_unique_name(root_project_path):
     result = root_project_path.replace("/", "_")
     return result
+
 
 changed_files = svn_utils.changed_files(ROOT_PROJECT_PATH)
 important_files = filter(is_important, changed_files)
@@ -79,14 +81,14 @@ for pom_path in pom_paths:
 to_rebuild = []
 
 for project in projects:
-    only_pom = not (mvn_utils.requires_jar(project.build_file_path))
+    only_pom = not (mvn_utils.requires_archive(project.build_file_path))
     build_date = mvn_utils.artifact_build_date(project, MAVEN_REPO_PATH, only_pom)
 
     project_src_path = Path(project.build_file_path).parent
     src_modification = file_utils.last_modification(str(project_src_path))
 
     if ((build_date is None) or (build_date < src_modification)):
-        six.print_(project, "needs rebuild. Last jar update: " + str(build_date))
+        six.print_(project, "needs rebuild. Last build update: " + str(build_date))
         to_rebuild.append(project)
 
 six.print_("Rebuilding projects...")
