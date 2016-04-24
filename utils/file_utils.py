@@ -71,20 +71,26 @@ def exists(filename):
     return os.path.exists(path)
 
 
-def last_modification(folder_path):
+def last_modification(folder_paths):
     result = None
-    for root, subdirs, files in os.walk(folder_path):
-        root_path = pathlib.Path(root)
-        for file in files:
-            file_path = str(root_path.joinpath(file))
-            file_date = modification_date(file_path)
-            if ((result is None) or (result < file_date)):
-                result = file_date
 
-        for folder in subdirs:
-            folder_path = str(root_path.joinpath(folder))
-            folder_date = modification_date(folder_path)
-            if ((result is None) or (result < folder_date)):
-                result = folder_date
+    for root_folder_path in folder_paths:
+        file_date = modification_date(root_folder_path)
+        if ((result is None) or (result < file_date)):
+            result = file_date
+
+        for root, subdirs, files in os.walk(root_folder_path):
+            root_path = pathlib.Path(root)
+            for file in files:
+                file_path = str(root_path.joinpath(file))
+                file_date = modification_date(file_path)
+                if ((result is None) or (result < file_date)):
+                    result = file_date
+
+            for folder in subdirs:
+                folder_path = str(root_path.joinpath(folder))
+                folder_date = modification_date(folder_path)
+                if ((result is None) or (result < folder_date)):
+                    result = folder_date
 
     return result

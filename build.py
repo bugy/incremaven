@@ -7,6 +7,7 @@ from pathlib import Path
 import utils.file_utils as file_utils
 import utils.mvn_utils as mvn_utils
 import utils.svn_utils as svn_utils
+import utils.collections as collections
 
 parser = argparse.ArgumentParser(description="Rebuild of complex (maven) projects.")
 parser.add_argument("-r", "--rootPath", help="path to the root project", default=".")
@@ -31,7 +32,7 @@ MAVEN_REPO_PATH = mvn_utils.repo_path()
 
 
 def is_important(file_path):
-    return (file_path.endswith(".java") or file_path.endswith("pom.xml"))
+    return (not file_path.endswith(".iml"))
 
 
 def get_unique_name(root_project_path):
@@ -57,7 +58,7 @@ for file in important_files:
 
         parent_path = parent_path.parent
 
-new_in_progress = [str(pom_path) for pom_path in pom_paths]
+new_in_progress = collections.to_strings(pom_paths)
 
 in_progress_file = "~/.rebuilder/" + get_unique_name(ROOT_PROJECT_PATH)
 prev_in_progress = []
@@ -69,7 +70,7 @@ for pom_path_str in prev_in_progress:
     pom_path = Path(pom_path_str)
     pom_paths.add(pom_path)
 
-pom_paths_str = [str(pom_path) for pom_path in pom_paths]
+pom_paths_str = collections.to_strings(pom_paths)
 file_utils.write_file(in_progress_file, "\n".join(pom_paths_str))
 
 projects = []
@@ -81,11 +82,11 @@ for pom_path in pom_paths:
 to_rebuild = []
 
 for project in projects:
-    only_pom = not (mvn_utils.requires_archive(project.build_file_path))
-    build_date = mvn_utils.artifact_build_date(project, MAVEN_REPO_PATH, only_pom)
+    build_date = mvn_utils.artifact_build_date(project, MAVEN_REPO_PATH)
 
-    project_src_path = Path(project.build_file_path).parent
-    src_modification = file_utils.last_modification(str(project_src_path))
+    project_src_paths = mvn_utils.get_buildable_paths(project)
+
+    src_modification = file_utils.last_modification(collections.to_strings(project_src_paths))
 
     if ((build_date is None) or (build_date < src_modification)):
         six.print_(project, "needs rebuild. Last build update: " + str(build_date))

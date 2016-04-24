@@ -11,12 +11,12 @@ import utils.xml_utils as xml_utils
 
 
 def create_project(pom_path):
-    xml_values = xml_utils.read_values(pom_path,
-                                       ["artifactId",
-                                        "version",
-                                        "parent/version",
-                                        "groupId",
-                                        "parent/groupId"])
+    xml_values = xml_utils.find_in_file(pom_path,
+                                        ["artifactId",
+                                         "version",
+                                         "parent/version",
+                                         "groupId",
+                                         "parent/groupId"])
 
     artifact_id = xml_values["artifactId"]
     version = xml_values["version"]
@@ -32,7 +32,7 @@ def create_project(pom_path):
 
 
 def get_package_type(pom_path):
-    values = xml_utils.read_values(pom_path, ["packaging"])
+    values = xml_utils.find_in_file(pom_path, ["packaging"])
     if (values["packaging"]):
         return values["packaging"]
 
@@ -84,7 +84,7 @@ def repo_path():
 
     settings_path = maven_path.joinpath("settings.xml")
     if (settings_path.exists()):
-        values = xml_utils.read_values(str(settings_path), ["localRepository"])
+        values = xml_utils.find_in_file(str(settings_path), ["localRepository"])
 
         local_repository = values["localRepository"]
         if (local_repository is not None):
@@ -103,23 +103,55 @@ def requires_archive(pom_path):
     return False
 
 
-def artifact_build_date(project, repo_path, only_pom):
+def artifact_build_date(project, repo_path):
+    dates = []
+
     pom_path = repo_pom_path(project, repo_path)
-    if (not pom_path.exists()):
-        return None
-    else:
+    if (pom_path.exists()):
+        # we need to compare files, since maven just copies pom without changing modification date
         built_pom_content = file_utils.read_file(str(pom_path))
         current_pom_content = file_utils.read_file(str(project.get_build_file_path()))
         if (string_utils.differ(built_pom_content, current_pom_content, True)):
             return None
-
-    if (only_pom):
-        return datetime.datetime.today()
-
-    artifact_path = repo_artifact_path(project, repo_path)
-    if (artifact_path.exists()):
-        min_date = file_utils.modification_date(str(artifact_path))
+        dates.append(datetime.datetime.today())
     else:
         return None
 
-    return min_date
+    if (requires_archive(project.build_file_path)):
+        artifact_path = repo_artifact_path(project, repo_path)
+        if (artifact_path.exists()):
+            dates.append(file_utils.modification_date(str(artifact_path)))
+        else:
+            return None
+
+    return min(dates)
+
+
+def get_buildable_paths(project):
+    pom_path = pathlib.Path(project.get_build_file_path())
+
+    result = [pom_path]
+
+    source_info = xml_utils.find_in_file(str(pom_path), ["build/sourceDirectory",
+                                                         "build/testSourceDirectory",
+                                                         "build/resources/resource/directory",
+                                                         "build/testResources/testResource/directory"])
+
+    source_folders = set(["src"])
+    for key, value in source_info.items():
+        if (value is not None):
+            if (isinstance(value, list)):
+                source_folders.update(value)
+            elif (value):
+                source_folders.add(value)
+
+    project_path = pom_path.parent
+    for source_folder in source_folders:
+        if ((source_folder != "src") and (source_folder.startswith("src"))):
+            continue
+
+        source_path = project_path.joinpath(source_folder)
+        if (source_path.exists()):
+            result.append(source_path)
+
+    return result
