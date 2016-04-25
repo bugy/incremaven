@@ -16,14 +16,14 @@ def invoke(command, work_dir="."):
     output = output.decode("utf-8")
 
     result_code = p.returncode
-    if (result_code != 0):
+    if result_code != 0:
         message = "Execution failed with exit code " + str(result_code)
         six.print_(message)
         six.print_(output)
         raise Exception(message)
         
     error = error.decode("utf-8")
-    if (error):
+    if error:
         six.print_("WARN! Error output wasn't empty, although the command finished with code 0!")
 
     return output

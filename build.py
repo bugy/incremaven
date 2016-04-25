@@ -14,8 +14,10 @@ parser.add_argument("-r", "--rootPath", help="path to the root project", default
 parser.add_argument("-m", "--maven", help="maven parameters to pass to mvn command", default="")
 args = vars(parser.parse_args())
 
-if (args["rootPath"]):
+if args["rootPath"]:
     ROOT_PROJECT_PATH = args["rootPath"]
+else:
+    ROOT_PROJECT_PATH = "."
 
 MVN_OPTS = args["maven"]
 
@@ -24,7 +26,7 @@ six.print_("Root project path: " + ROOT_PROJECT_PATH)
 six.print_("Additional maven arguments: " + str(MVN_OPTS))
 
 rootPom = Path(ROOT_PROJECT_PATH).joinpath("pom.xml")
-if (not rootPom.exists()):
+if not rootPom.exists():
     six.print_("ERROR! No root pom.xml find in path", os.path.abspath(ROOT_PROJECT_PATH))
     sys.exit(1)
 
@@ -32,7 +34,7 @@ MAVEN_REPO_PATH = mvn_utils.repo_path()
 
 
 def is_important(file_path):
-    return (not file_path.endswith(".iml"))
+    return not file_path.endswith(".iml")
 
 
 def get_unique_name(root_project_path):
@@ -49,10 +51,10 @@ for file in important_files:
     pom_path = Path(file)
     parent_path = pom_path.parent
 
-    while (parent_path and (parent_path != ROOT_PROJECT_PATH)):
+    while parent_path and (parent_path != ROOT_PROJECT_PATH):
         pom_path_str = Path(parent_path).joinpath("pom.xml")
 
-        if (pom_path_str.exists()):
+        if pom_path_str.exists():
             pom_paths.add(pom_path_str)
             break
 
@@ -62,7 +64,7 @@ new_in_progress = collections.to_strings(pom_paths)
 
 in_progress_file = "~/.rebuilder/" + get_unique_name(ROOT_PROJECT_PATH)
 prev_in_progress = []
-if (file_utils.exists(in_progress_file)):
+if file_utils.exists(in_progress_file):
     prev_in_progress = file_utils.read_file(in_progress_file).split("\n")
     prev_in_progress = filter(lambda line: line != "", prev_in_progress)
 
@@ -88,7 +90,7 @@ for project in projects:
 
     src_modification = file_utils.last_modification(collections.to_strings(project_src_paths))
 
-    if ((build_date is None) or (build_date < src_modification)):
+    if (build_date is None) or (build_date < src_modification):
         six.print_(project, "needs rebuild. Last build update: " + str(build_date))
         to_rebuild.append(project)
 

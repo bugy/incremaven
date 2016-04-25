@@ -25,12 +25,12 @@ def find_in_tree(tree, x_paths, ignore_namespaces):
     for x_path in x_paths:
         search_path = x_path
 
-        if (root_ns and ignore_namespaces):
+        if root_ns and ignore_namespaces:
             search_path = adapt_namespace(x_path, "x")
 
         elements = root.findall(search_path, ns)
-        if (elements is not None) and (elements):
-            if (len(elements) == 1):
+        if (elements is not None) and elements:
+            if len(elements) == 1:
                 result[x_path] = elements[0].text.strip()
             else:
                 result[x_path] = [element.text.strip() for element in elements]

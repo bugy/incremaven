@@ -19,7 +19,7 @@ def read_new_content(existing_content, imported_files):
     updated_existing_content = existing_content
 
     for import_line in import_lines:
-        if (not import_line.startswith("import")):
+        if not import_line.startswith("import"):
             # from imports are not supported
             continue
 
@@ -27,21 +27,21 @@ def read_new_content(existing_content, imported_files):
         import_name = words[1]
         import_path = import_name.replace(".", "/") + ".py"
         path = pathlib.Path(import_path)
-        if (not path.exists()):
+        if not path.exists():
             continue
 
         alias = import_name
-        if ((len(words) == 4) and words[2] and (words[2] == "as")):
+        if (len(words) == 4) and words[2] and (words[2] == "as"):
             alias = words[3]
 
         updated_existing_content = updated_existing_content.replace(import_line, "")
         updated_existing_content = updated_existing_content.replace(alias + ".", "")
 
-        if (not (import_name in imported_files)):
+        if not (import_name in imported_files):
             imported_files.append(import_name)
             additional_content += file_utils.read_file(import_path) + "\n"
 
-    return (updated_existing_content, additional_content)
+    return updated_existing_content, additional_content
 
 
 def optimize_imports(assembled_content):
@@ -61,7 +61,7 @@ imported_files = ["build"]
 assembled_content = ""
 
 next_content = build_file_content
-while (next_content):
+while next_content:
     (processed_content, next_content) = read_new_content(next_content, imported_files)
     assembled_content = processed_content + "\n" + assembled_content
 

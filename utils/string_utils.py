@@ -1,8 +1,9 @@
 import re
 
+
 def contains_whole_word(text, word):
-    compile = re.compile(r'\b({0})\b'.format(word), flags=re.IGNORECASE)
-    search_result = compile.search(text)
+    pattern = re.compile(r'\b({0})\b'.format(word), flags=re.IGNORECASE)
+    search_result = pattern.search(text)
     return search_result is not None
 
 
@@ -15,7 +16,7 @@ def remove_empty_lines(text):
 
 
 def differ(text1, text2, trim):
-    if (trim):
+    if trim:
         text1 = trim_text(text1)
         text2 = trim_text(text2)
 
