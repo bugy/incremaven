@@ -42,9 +42,17 @@ def get_package_type(pom_path):
 def repo_artifact_path(project, repo_path):
     artifact_path = repo_folder_path(project, repo_path)
 
+    artifact_name = get_artifact_name(project)
+
+    return artifact_path.joinpath(artifact_name)
+
+
+def get_artifact_name(project):
     package_type = get_package_type(project.get_build_file_path())
 
-    return artifact_path.joinpath("{}-{}.{}".format(project.artifact_id, project.version, package_type))
+    artifact_name = "{}-{}.{}".format(project.artifact_id, project.version, package_type)
+
+    return artifact_name
 
 
 def repo_pom_path(project, repo_path):
@@ -94,12 +102,14 @@ def repo_path():
     return str(maven_path.joinpath("repository"))
 
 
-def requires_archive(pom_path):
-    project_path = pathlib.Path(pom_path).parent
-    sources_path = project_path.joinpath("src")
-    if sources_path.exists():
-        for root, subdirs, files in os.walk(str(sources_path)):
-            return files == []
+def requires_archive(project):
+    buildable_paths = get_buildable_paths(project)
+
+    for buildable_path in buildable_paths:
+        for root, subdirs, files in os.walk(str(buildable_path)):
+            if files:
+                return True
+
     return False
 
 
@@ -117,10 +127,28 @@ def artifact_build_date(project, repo_path):
     else:
         return None
 
-    if requires_archive(project.build_file_path):
+    if requires_archive(project):
         artifact_path = repo_artifact_path(project, repo_path)
+
         if artifact_path.exists():
-            dates.append(file_utils.modification_date(str(artifact_path)))
+            target_info = xml_utils.find_in_file(str(project.get_build_file_path()), ["build/directory"])
+            target = target_info["build/directory"]
+            if target is None:
+                target = "target"
+
+            project_path = pathlib.Path(project.get_build_file_path()).parent
+            target_artifact_path = project_path.joinpath(target).joinpath(get_artifact_name(project))
+            if (not target_artifact_path.exists()):
+                return None
+
+            target_date = file_utils.modification_date(str(target_artifact_path))
+            repo_date = file_utils.modification_date(str(artifact_path))
+
+            install_time_diff = repo_date - target_date
+            if (install_time_diff.seconds > 5) or (install_time_diff.seconds < 0):
+                return None
+
+            dates.append(repo_date)
         else:
             return None
 

@@ -2,7 +2,11 @@ import xml.etree.ElementTree as ElementTree
 import re
 
 
-def find_in_file(xml_path, x_paths, ignore_namespaces=True):
+def find_in_file(xml_path: str, x_paths: list, ignore_namespaces=True) -> dict:
+    """
+
+    :rtype: dict
+    """
     tree = ElementTree.parse(xml_path)
     return find_in_tree(tree, x_paths, ignore_namespaces)
 
