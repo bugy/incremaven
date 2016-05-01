@@ -1,5 +1,5 @@
-import xml.etree.ElementTree as ElementTree
 import re
+import xml.etree.ElementTree as ElementTree
 
 
 def find_in_file(xml_path: str, x_paths: list, ignore_namespaces=True) -> dict:
@@ -35,13 +35,27 @@ def find_in_tree(tree, x_paths, ignore_namespaces):
         elements = root.findall(search_path, ns)
         if (elements is not None) and elements:
             if len(elements) == 1:
-                result[x_path] = elements[0].text.strip()
+                result[x_path] = read_element(elements[0])
             else:
-                result[x_path] = [element.text.strip() for element in elements]
+                result[x_path] = [read_element(element) for element in elements]
         else:
             result[x_path] = None
 
     return result
+
+
+def read_element(element):
+    sub_elements = list(element)
+    if len(sub_elements) > 0:
+        as_map = {}
+        for sub_element in sub_elements:
+            key = sub_element.tag
+            key = key[key.rfind("}") + 1:]
+            as_map[key] = sub_element.text.strip()
+
+        return as_map
+    else:
+        return element.text.strip()
 
 
 def namespace(element):
