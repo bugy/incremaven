@@ -2,9 +2,11 @@ import re
 import xml.etree.ElementTree as ElementTree
 
 
-def find_in_file(xml_path: str, x_paths: list, ignore_namespaces=True) -> dict:
+def find_in_file(xml_path, x_paths, ignore_namespaces=True):
     """
-
+    :type xml_path: str
+    :type x_paths: list
+    :type ignore_namespaces: bool
     :rtype: dict
     """
     tree = ElementTree.parse(xml_path)

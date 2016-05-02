@@ -128,7 +128,11 @@ def repo_artifact_path(project, repo_path):
     return artifact_path.joinpath(artifact_name)
 
 
-def get_artifact_name(project: MavenProject):
+def get_artifact_name(project):
+    """
+
+    :type project: MavenProject
+    """
     package_type = project.get_packaging()
 
     artifact_name = "{}-{}.{}".format(project.artifact_id, project.version, package_type)
@@ -281,7 +285,11 @@ def analyze_project_roots(projects):
     return project_roots
 
 
-def get_direct_dependencies(project: MavenProject):
+def get_direct_dependencies(project):
+    """
+
+    :type project: MavenProject
+    """
     pom_path = project.get_pom_path()
     results = xml_utils.find_in_file(pom_path, ["dependencies/dependency"])
     dependencies = results["dependencies/dependency"]
@@ -372,5 +380,9 @@ def artifact_build_date(project, repo_path):
     return min(dates)
 
 
-def get_buildable_paths(project: MavenProject):
+def get_buildable_paths(project):
+    """
+
+    :type project: MavenProject
+    """
     return project.get_source_folders()
