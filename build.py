@@ -76,7 +76,8 @@ if file_utils.exists(in_progress_file):
 
 for pom_path_str in prev_in_progress:
     file_path = Path(pom_path_str)
-    pom_paths.add(file_path)
+    if file_path.exists():
+        pom_paths.add(file_path)
 
 pom_paths_str = collections.to_strings(pom_paths)
 file_utils.write_file(in_progress_file, "\n".join(pom_paths_str))
