@@ -303,13 +303,22 @@ def get_direct_dependencies(project):
 
 
 def read_sub_modules(module_path):
-    modules_info = xml_utils.find_in_file(module_path + "/pom.xml", ["modules/module"])
+    modules_info = xml_utils.find_in_file(module_path + "/pom.xml", ["modules/module", "profiles/profile"])
 
-    sub_modules = []
-    if isinstance(modules_info["modules/module"], list):
-        sub_modules.extend(modules_info["modules/module"])
-    elif modules_info["modules/module"]:
-        sub_modules.append(modules_info["modules/module"])
+    sub_modules = collections.as_list(modules_info["modules/module"])
+
+    if modules_info["profiles/profile"]:
+        profiles = collections.as_list(modules_info["profiles/profile"])
+
+        for profile in profiles:
+            profile_modules_info = profile.get("modules")
+
+            if (profile.get("activation")
+                and profile.get("activation").get("activeByDefault") == "true"
+                and profile_modules_info):
+                profile_modules = collections.as_list(profile_modules_info["module"])
+
+                sub_modules.extend(profile_modules)
 
     return sub_modules
 

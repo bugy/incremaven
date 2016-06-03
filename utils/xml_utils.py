@@ -53,7 +53,20 @@ def read_element(element):
         for sub_element in sub_elements:
             key = sub_element.tag
             key = key[key.rfind("}") + 1:]
-            as_map[key] = sub_element.text.strip()
+
+            value = read_element(sub_element)
+
+            if (key in as_map):
+                if isinstance(as_map[key], list):
+                    value_list = as_map[key]
+                else:
+                    value_list = [as_map[key]]
+                    as_map[key] = value_list
+
+                value_list.append(value)
+
+            else:
+                as_map[key] = value
 
         return as_map
     else:
