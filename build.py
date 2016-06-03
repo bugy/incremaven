@@ -48,14 +48,20 @@ important_files = filter(is_important, changed_files)
 pom_paths = set([])
 
 for file in important_files:
-    pom_path = Path(file)
-    parent_path = pom_path.parent
+    file_path = Path(file)
+    if file_path.is_dir():
+        parent_path = file_path
+    else:
+        parent_path = file_path.parent
 
-    while parent_path and (parent_path != ROOT_PROJECT_PATH):
+    while parent_path and not (file_utils.is_root(str(parent_path))):
         pom_path_str = Path(parent_path).joinpath("pom.xml")
 
         if pom_path_str.exists():
             pom_paths.add(pom_path_str)
+            break
+
+        if parent_path == ROOT_PROJECT_PATH:
             break
 
         parent_path = parent_path.parent
@@ -69,16 +75,16 @@ if file_utils.exists(in_progress_file):
     prev_in_progress = filter(lambda line: line != "", prev_in_progress)
 
 for pom_path_str in prev_in_progress:
-    pom_path = Path(pom_path_str)
-    pom_paths.add(pom_path)
+    file_path = Path(pom_path_str)
+    pom_paths.add(file_path)
 
 pom_paths_str = collections.to_strings(pom_paths)
 file_utils.write_file(in_progress_file, "\n".join(pom_paths_str))
 
 projects = []
 
-for pom_path in pom_paths:
-    project = mvn_utils.create_project(str(pom_path))
+for file_path in pom_paths:
+    project = mvn_utils.create_project(str(file_path))
     projects.append(project)
 
 to_rebuild = []
