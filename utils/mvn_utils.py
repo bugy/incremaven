@@ -11,6 +11,7 @@ import utils.file_utils as file_utils
 import utils.process_utils as process_utils
 import utils.string_utils as string_utils
 import utils.xml_utils as xml_utils
+import utils.date_utils as date_utils
 
 
 class MavenProject(model.Project):
@@ -395,3 +396,22 @@ def get_buildable_paths(project):
     :type project: MavenProject
     """
     return project.get_source_folders()
+
+
+def renew_metadata(projects, repo_path):
+    if not projects:
+        return
+
+    now = datetime.datetime.now()
+    current_time = datetime.datetime.strftime(now, "%Y%m%d%H%M%S")
+
+    for project in projects:
+        project_repo_path = repo_folder_path(project, repo_path)
+
+        metadata_path = project_repo_path.joinpath("maven-metadata-local.xml")
+
+        if metadata_path.exists():
+            xml_utils.replace_in_tree(str(metadata_path), {
+                "versioning/lastUpdated": current_time,
+                "versioning/snapshotVersions/snapshotVersion/updated": current_time
+            })

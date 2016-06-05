@@ -89,6 +89,7 @@ for file_path in pom_paths:
     projects.append(project)
 
 to_rebuild = []
+to_renew_metadata = []
 
 for project in projects:
     build_date = mvn_utils.artifact_build_date(project, MAVEN_REPO_PATH)
@@ -100,6 +101,11 @@ for project in projects:
     if (build_date is None) or (build_date < src_modification):
         six.print_(project, "needs rebuild. Last build update: " + str(build_date))
         to_rebuild.append(project)
+    else:
+        to_renew_metadata.append(project)
+
+six.print_("Updating local build time for non-changed projects...")
+mvn_utils.renew_metadata(to_renew_metadata, MAVEN_REPO_PATH)
 
 six.print_("Rebuilding projects...")
 mvn_utils.rebuild(ROOT_PROJECT_PATH, to_rebuild, MVN_OPTS)

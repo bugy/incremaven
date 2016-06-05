@@ -19,6 +19,23 @@ def find_in_string(xml_string, x_paths, ignore_namespaces=True):
 
 
 def find_in_tree(tree, x_paths, ignore_namespaces):
+    elements_dict = gather_elements(tree, x_paths, ignore_namespaces)
+
+    result = {}
+
+    for x_path, elements in elements_dict.items():
+        if (elements is not None) and elements:
+            if len(elements) == 1:
+                result[x_path] = read_element(elements[0])
+            else:
+                result[x_path] = [read_element(element) for element in elements]
+        else:
+            result[x_path] = None
+
+    return result
+
+
+def gather_elements(tree, x_paths, ignore_namespaces):
     root = tree.getroot()
     root_ns = namespace(root)
     ns = {}
@@ -36,10 +53,7 @@ def find_in_tree(tree, x_paths, ignore_namespaces):
 
         elements = root.findall(search_path, ns)
         if (elements is not None) and elements:
-            if len(elements) == 1:
-                result[x_path] = read_element(elements[0])
-            else:
-                result[x_path] = [read_element(element) for element in elements]
+            result[x_path] = elements
         else:
             result[x_path] = None
 
@@ -84,3 +98,22 @@ def adapt_namespace(x_path, prefix):
                      for element in path_elements]
 
     return "/".join(path_elements)
+
+
+def replace_in_tree(file_path, replace_dict, ignore_namespaces=True):
+    tree = ElementTree.parse(file_path)
+    elements_dict = gather_elements(tree, replace_dict.keys(), ignore_namespaces)
+
+    for xpath, elements in elements_dict.items():
+        if elements is None:
+            continue
+
+        value = replace_dict[xpath]
+
+        if isinstance(elements, list):
+            for element in elements:
+                element.text = value
+        else:
+            elements.text = value
+
+    tree.write(file_path)
