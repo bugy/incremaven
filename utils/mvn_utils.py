@@ -1,7 +1,6 @@
 import copy
 import datetime
 import os.path
-import pathlib
 
 import six
 
@@ -11,7 +10,6 @@ import utils.file_utils as file_utils
 import utils.process_utils as process_utils
 import utils.string_utils as string_utils
 import utils.xml_utils as xml_utils
-import utils.date_utils as date_utils
 
 
 class MavenProject(model.Project):
@@ -25,7 +23,7 @@ class MavenProject(model.Project):
                                artifact_id,
                                group,
                                version,
-                               str(pathlib.Path(pom_path).parent))
+                               os.path.dirname(pom_path))
 
         self.pom_path = pom_path
 
@@ -109,13 +107,13 @@ def collect_source_folders(pom_path, *source_paths):
             elif value:
                 source_folders.add(value)
 
-    project_path = pathlib.Path(pom_path).parent
+    project_path = os.path.dirname(pom_path)
     for source_folder in source_folders:
         if (source_folder != "src") and (source_folder.startswith("src")):
             continue
 
-        source_path = project_path.joinpath(source_folder)
-        if source_path.exists():
+        source_path = os.path.join(project_path, source_folder)
+        if os.path.exists(source_path):
             result.append(source_path)
 
     return result
@@ -126,7 +124,7 @@ def repo_artifact_path(project, repo_path):
 
     artifact_name = get_artifact_name(project)
 
-    return artifact_path.joinpath(artifact_name)
+    return os.path.join(artifact_path, artifact_name)
 
 
 def get_artifact_name(project):
@@ -144,18 +142,18 @@ def get_artifact_name(project):
 def repo_pom_path(project, repo_path):
     artifact_path = repo_folder_path(project, repo_path)
 
-    return artifact_path.joinpath("{}-{}.pom".format(project.artifact_id, project.version))
+    return os.path.join(artifact_path, "{}-{}.pom".format(project.artifact_id, project.version))
 
 
 def repo_folder_path(project, repo_path):
-    folder_path = pathlib.Path(repo_path)
+    folder_path = repo_path
 
     sub_folders = project.group.split(".")
-    for folder in sub_folders:
-        folder_path = folder_path.joinpath(folder)
+    for sub_folder in sub_folders:
+        folder_path = os.path.join(folder_path, sub_folder)
 
-    folder_path = folder_path.joinpath(project.artifact_id)
-    folder_path = folder_path.joinpath(project.version)
+    folder_path = os.path.join(folder_path, project.artifact_id)
+    folder_path = os.path.join(folder_path, project.version)
 
     return folder_path
 
@@ -267,21 +265,22 @@ def split_by_dependencies(projects, project_roots):
 def analyze_project_roots(projects):
     project_roots = {}
     for project in projects:
-        project_root_path = pathlib.Path(project.get_path())
+        project_root_path = project.get_path()
 
-        while not file_utils.is_root(str(project_root_path)):
-            parent = project_root_path.parent
+        while not file_utils.is_root(project_root_path):
+            parent_path = os.path.dirname(project_root_path)
 
-            if not parent.joinpath("pom.xml").exists():
+            parent_pom_path = os.path.join(parent_path, "pom.xml")
+            if not os.path.exists(parent_pom_path):
                 break
 
-            sub_modules = read_sub_modules(str(parent))
-            if not (project_root_path.name in sub_modules):
+            sub_modules = read_sub_modules(parent_path)
+            if not (os.path.basename(project_root_path) in sub_modules):
                 break
 
-            project_root_path = parent
+            project_root_path = parent_path
 
-        root_path_str = str(project_root_path)
+        root_path_str = project_root_path
         project_roots[project] = root_path_str
     return project_roots
 
@@ -304,7 +303,8 @@ def get_direct_dependencies(project):
 
 
 def read_sub_modules(module_path):
-    modules_info = xml_utils.find_in_file(module_path + "/pom.xml", ["modules/module", "profiles/profile"])
+    pom_path = os.path.join(module_path, 'pom.xml')
+    modules_info = xml_utils.find_in_file(pom_path, ["modules/module", "profiles/profile"])
 
     sub_modules = collections.as_list(modules_info["modules/module"])
 
@@ -326,25 +326,25 @@ def read_sub_modules(module_path):
 
 def repo_path():
     home = os.path.expanduser("~")
-    maven_path = pathlib.Path(home).joinpath(".m2")
+    maven_path = os.path.join(home, ".m2")
 
-    settings_path = maven_path.joinpath("settings.xml")
-    if settings_path.exists():
-        values = xml_utils.find_in_file(str(settings_path), ["localRepository"])
+    settings_path = os.path.join(maven_path, "settings.xml")
+    if os.path.exists(settings_path):
+        values = xml_utils.find_in_file(settings_path, ["localRepository"])
 
         local_repository = values["localRepository"]
         if local_repository is not None:
             local_repository = local_repository.replace("${user.home}", home)
             return local_repository
 
-    return str(maven_path.joinpath("repository"))
+    return os.path.join(maven_path, "repository")
 
 
 def requires_archive(project):
     buildable_paths = get_buildable_paths(project)
 
     for buildable_path in buildable_paths:
-        for root, subdirs, files in os.walk(str(buildable_path)):
+        for root, subdirs, files in os.walk(buildable_path):
             if files:
                 return True
 
@@ -355,10 +355,10 @@ def artifact_build_date(project, repo_path):
     dates = []
 
     pom_path = repo_pom_path(project, repo_path)
-    if pom_path.exists():
+    if os.path.exists(pom_path):
         # we need to compare files, since maven just copies pom without changing modification date
-        built_pom_content = file_utils.read_file(str(pom_path))
-        current_pom_content = file_utils.read_file(str(project.get_pom_path()))
+        built_pom_content = file_utils.read_file(pom_path)
+        current_pom_content = file_utils.read_file(project.get_pom_path())
         if string_utils.differ(built_pom_content, current_pom_content, True):
             return None
         dates.append(datetime.datetime.today())
@@ -368,16 +368,16 @@ def artifact_build_date(project, repo_path):
     if requires_archive(project):
         artifact_path = repo_artifact_path(project, repo_path)
 
-        if artifact_path.exists():
+        if os.path.exists(artifact_path):
             target = project.get_build_directory()
 
-            project_path = pathlib.Path(project.get_pom_path()).parent
-            target_artifact_path = project_path.joinpath(target).joinpath(get_artifact_name(project))
-            if not target_artifact_path.exists():
+            project_path = os.path.dirname(project.get_pom_path())
+            target_artifact_path = os.path.join(project_path, target, get_artifact_name(project))
+            if not os.path.exists(target_artifact_path):
                 return None
 
-            target_date = file_utils.modification_date(str(target_artifact_path))
-            repo_date = file_utils.modification_date(str(artifact_path))
+            target_date = file_utils.modification_date(target_artifact_path)
+            repo_date = file_utils.modification_date(artifact_path)
 
             install_time_diff = repo_date - target_date
             if (install_time_diff.seconds > 5) or (install_time_diff.seconds < 0):
@@ -408,10 +408,10 @@ def renew_metadata(projects, repo_path):
     for project in projects:
         project_repo_path = repo_folder_path(project, repo_path)
 
-        metadata_path = project_repo_path.joinpath("maven-metadata-local.xml")
+        metadata_path = os.path.join(project_repo_path, "maven-metadata-local.xml")
 
-        if metadata_path.exists():
-            xml_utils.replace_in_tree(str(metadata_path), {
+        if os.path.exists(metadata_path):
+            xml_utils.replace_in_tree(metadata_path, {
                 "versioning/lastUpdated": current_time,
                 "versioning/snapshotVersions/snapshotVersion/updated": current_time
             })

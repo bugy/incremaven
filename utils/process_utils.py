@@ -1,3 +1,4 @@
+import os
 import subprocess
 import six
 
@@ -6,10 +7,12 @@ def invoke(command, work_dir="."):
     if isinstance(command, six.string_types):
         command = command.split()
 
+    shell = (os.name == 'nt')  # on windows commands like mvn won't work without shell
     p = subprocess.Popen(command,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE,
-                         cwd=work_dir)
+                         cwd=work_dir,
+                         shell=shell)
 
     (output_bytes, error_bytes) = p.communicate()
 

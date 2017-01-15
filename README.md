@@ -1,15 +1,15 @@
 # rebuilder
 This is a python project for assisting in easy project building.
 
-*Currently only java+mvn+svn+linux are supported*
+*Currently only java + mvn + svn + linux/win are supported*
 
 The project analyzes changed files (svn + modification date) and rebuilds maven artifact,
 if it's outdated.
 
 ## Requirements
-* Linux (for bash commands and paths)
+* Linux / Windows
 * Python (2 or 3)
-  * python-pathlib (pip install pathlib **or** apt-get install python-pathlib)
+  * six (pip install six **or** apt-get install python-six)
 * Maven (3+)
 * svn (1.6+)
 

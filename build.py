@@ -2,12 +2,10 @@ import argparse
 import os.path
 import six
 import sys
-from pathlib import Path
 
 import utils.file_utils as file_utils
 import utils.mvn_utils as mvn_utils
 import utils.svn_utils as svn_utils
-import utils.collections as collections
 
 parser = argparse.ArgumentParser(description="Rebuild of complex (maven) projects.")
 parser.add_argument("-r", "--rootPath", help="path to the root project", default=".")
@@ -25,8 +23,8 @@ ROOT_PROJECT_PATH = file_utils.normalize_path(ROOT_PROJECT_PATH)
 six.print_("Root project path: " + ROOT_PROJECT_PATH)
 six.print_("Additional maven arguments: " + str(MVN_OPTS))
 
-rootPom = Path(ROOT_PROJECT_PATH).joinpath("pom.xml")
-if not rootPom.exists():
+root_pom_path = os.path.join(ROOT_PROJECT_PATH, "pom.xml")
+if not os.path.exists(root_pom_path):
     six.print_("ERROR! No root pom.xml find in path", os.path.abspath(ROOT_PROJECT_PATH))
     sys.exit(1)
 
@@ -38,7 +36,12 @@ def is_important(file_path):
 
 
 def get_unique_name(root_project_path):
-    result = root_project_path.replace("/", "_")
+    if os.name == 'nt':
+        result = root_project_path.replace('\\', "_")
+    else:
+        result = root_project_path.replace('/', "_")
+
+    result = result.replace(":", "_")
     return result
 
 
@@ -47,45 +50,47 @@ important_files = filter(is_important, changed_files)
 
 pom_paths = set([])
 
-for file in important_files:
-    file_path = Path(file)
-    if file_path.is_dir():
+for file_path in important_files:
+    file_path = file_utils.normalize_path(file_path)
+
+    if os.path.isdir(file_path):
         parent_path = file_path
     else:
-        parent_path = file_path.parent
+        parent_path = os.path.dirname(file_path)
 
-    while parent_path and not (file_utils.is_root(str(parent_path))):
-        pom_path_str = Path(parent_path).joinpath("pom.xml")
+    while parent_path and not (file_utils.is_root(parent_path)):
+        pom_path = os.path.join(parent_path, "pom.xml")
 
-        if pom_path_str.exists():
-            pom_paths.add(pom_path_str)
+        if os.path.exists(pom_path):
+            pom_paths.add(pom_path)
             break
 
         if parent_path == ROOT_PROJECT_PATH:
             break
 
-        parent_path = parent_path.parent
+        parent_path = os.path.dirname(parent_path)
 
-new_in_progress = collections.to_strings(pom_paths)
+new_in_progress = set(pom_paths)
 
-in_progress_file = "~/.rebuilder/" + get_unique_name(ROOT_PROJECT_PATH)
+home_folder = os.path.expanduser('~')
+unique_name = get_unique_name(ROOT_PROJECT_PATH)
+in_progress_file = os.path.join(home_folder, '.rebuilder', unique_name)
+
 prev_in_progress = []
-if file_utils.exists(in_progress_file):
+if os.path.exists(in_progress_file):
     prev_in_progress = file_utils.read_file(in_progress_file).split("\n")
     prev_in_progress = filter(lambda line: line != "", prev_in_progress)
 
-for pom_path_str in prev_in_progress:
-    file_path = Path(pom_path_str)
-    if file_path.exists():
-        pom_paths.add(file_path)
+for pom_path in prev_in_progress:
+    if os.path.exists(pom_path):
+        pom_paths.add(pom_path)
 
-pom_paths_str = collections.to_strings(pom_paths)
-file_utils.write_file(in_progress_file, "\n".join(pom_paths_str))
+file_utils.write_file(in_progress_file, "\n".join(pom_paths))
 
 projects = []
 
-for file_path in pom_paths:
-    project = mvn_utils.create_project(str(file_path))
+for pom_path in pom_paths:
+    project = mvn_utils.create_project(pom_path)
     projects.append(project)
 
 to_rebuild = []
@@ -96,7 +101,7 @@ for project in projects:
 
     project_src_paths = mvn_utils.get_buildable_paths(project)
 
-    src_modification = file_utils.last_modification(collections.to_strings(project_src_paths))
+    src_modification = file_utils.last_modification(project_src_paths)
 
     if (build_date is None) or (build_date < src_modification):
         six.print_(project, "needs rebuild. Last build update: " + str(build_date))

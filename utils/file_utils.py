@@ -1,7 +1,6 @@
 import datetime
 import os
 import os.path
-import pathlib
 import stat
 import time
 
@@ -12,15 +11,15 @@ def modification_date(file_path):
 
 
 def deletion_date(file_path):
-    path = pathlib.Path(file_path)
+    path = file_path
 
-    while not path.exists():
-        path = pathlib.Path(path.parent)
+    while not os.path.exists(path):
+        path = os.path.dirname(path)
 
-        if is_root(str(path)):
+        if is_root(path):
             raise Exception("Couldn't find parent folder for the deleted file " + file_path)
 
-    return modification_date(str(path))
+    return modification_date(path)
 
 
 def is_root(path):
@@ -28,17 +27,12 @@ def is_root(path):
 
 
 def normalize_path(path_string):
-    path_string = os.path.expanduser(path_string)
+    result = os.path.expanduser(path_string)
 
-    if os.path.isabs(path_string):
-        return path_string
+    if os.path.isabs(result):
+        return result
 
-    path = pathlib.Path(path_string)
-
-    if path.exists():
-        path = path.resolve()
-
-    return str(path)
+    return os.path.abspath(result)
 
 
 def read_file(filename):
@@ -80,15 +74,14 @@ def last_modification(folder_paths):
             result = file_date
 
         for root, subdirs, files in os.walk(root_folder_path):
-            root_path = pathlib.Path(root)
             for file in files:
-                file_path = str(root_path.joinpath(file))
+                file_path = os.path.join(root, file)
                 file_date = modification_date(file_path)
                 if (result is None) or (result < file_date):
                     result = file_date
 
             for folder in subdirs:
-                folder_path = str(root_path.joinpath(folder))
+                folder_path = os.path.join(root, folder)
                 folder_date = modification_date(folder_path)
                 if (result is None) or (result < folder_date):
                     result = folder_date

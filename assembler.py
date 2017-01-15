@@ -1,6 +1,6 @@
 # This script assembles all the scripts (build.py and its local imports)
 # to a single file build/rebuild.py
-
+import os
 import pathlib
 
 import utils.file_utils as file_utils
@@ -26,8 +26,7 @@ def read_new_content(existing_content, imported_files):
         words = import_line.split(" ")
         import_name = words[1]
         import_path = import_name.replace(".", "/") + ".py"
-        path = pathlib.Path(import_path)
-        if not path.exists():
+        if not os.path.exists(import_path):
             continue
 
         alias = import_name
