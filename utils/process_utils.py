@@ -1,10 +1,11 @@
+from __future__ import print_function
+
 import os
 import subprocess
-import six
 
 
 def invoke(command, work_dir="."):
-    if isinstance(command, six.string_types):
+    if isinstance(command, str):
         command = command.split()
 
     shell = (os.name == 'nt')  # on windows commands like mvn won't work without shell
@@ -22,15 +23,15 @@ def invoke(command, work_dir="."):
     result_code = p.returncode
     if result_code != 0:
         message = "Execution failed with exit code " + str(result_code)
-        six.print_(message)
-        six.print_(output)
+        print(message)
+        print(output)
 
         if error:
-            six.print_(" --- ERRORS ---:")
-            six.print_(error)
+            print(" --- ERRORS ---:")
+            print(error)
         raise Exception(message)
         
     if error:
-        six.print_("WARN! Error output wasn't empty, although the command finished with code 0!")
+        print("WARN! Error output wasn't empty, although the command finished with code 0!")
 
     return output

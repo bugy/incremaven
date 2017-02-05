@@ -1,8 +1,8 @@
+from __future__ import print_function
+
 import copy
 import datetime
 import os.path
-
-import six
 
 import model
 import utils.collections as collections
@@ -160,7 +160,7 @@ def repo_folder_path(project, repo_path):
 
 def rebuild(parent_project_path, projects, mvn_opts):
     if not projects:
-        six.print_("No projects to build, skipping")
+        print("No projects to build, skipping")
         return None
 
     project_roots = analyze_project_roots(projects)
@@ -169,11 +169,11 @@ def rebuild(parent_project_path, projects, mvn_opts):
 
     if len(set(project_roots.values())) > 1:
         levels = split_by_dependencies(projects, project_roots)
-        six.print_("Complex structure detected. Rebuilding in several steps")
+        print("Complex structure detected. Rebuilding in several steps")
 
         for i in range(0, len(levels)):
-            six.print_("Step " + str(i) + ": ")
-            six.print_(collections.to_strings(levels[i]))
+            print("Step " + str(i) + ": ")
+            print(collections.to_strings(levels[i]))
     else:
         levels = [project_roots.keys()]
 
@@ -192,6 +192,12 @@ def rebuild(parent_project_path, projects, mvn_opts):
             process_utils.invoke(
                 "mvn clean install -f {} {} -pl {}".format(root_path, mvn_opts, project_names_string),
                 parent_project_path)
+
+
+def rebuild_root(parent_project_path, mvn_opts):
+    process_utils.invoke(
+        "mvn clean install " + mvn_opts,
+        parent_project_path)
 
 
 def split_by_dependencies(projects, project_roots):

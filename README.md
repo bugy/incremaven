@@ -9,7 +9,6 @@ if it's outdated.
 ## Requirements
 * Linux / Windows
 * Python (2 or 3)
-  * six (pip install six **or** apt-get install python-six)
 * Maven (3+)
 * svn (1.6+)
 

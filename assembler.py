@@ -1,7 +1,6 @@
 # This script assembles all the scripts (build.py and its local imports)
 # to a single file build/rebuild.py
 import os
-import pathlib
 
 import utils.file_utils as file_utils
 import utils.string_utils as string_utils
@@ -47,25 +46,41 @@ def optimize_imports(assembled_content):
     result = assembled_content
 
     import_lines = set(get_import_lines(assembled_content))
+    future_import_lines = []
     for import_line in import_lines:
         result = result.replace(import_line + "\n", "")
 
+        if import_line.startswith('from __future__'):
+            future_import_lines.append(import_line)
+
+    for future_import in future_import_lines:
+        import_lines.remove(future_import)
+
     result = "\n".join(import_lines) + "\n" + result
+
+    if future_import_lines:
+        result = '\n'.join(future_import_lines) + '\n' + result
+
     return result
 
 
-build_file_content = file_utils.read_file("build.py")
-imported_files = ["build"]
+entry_scripts = {"build.py": "rebuild.py",
+                 "ci_build.py": "ci_rebuild.py"}
 
-assembled_content = ""
+for script_name, output_name in entry_scripts.items():
+    build_file_content = file_utils.read_file(script_name)
+    imported_files = ["build"]
 
-next_content = build_file_content
-while next_content:
-    (processed_content, next_content) = read_new_content(next_content, imported_files)
-    assembled_content = processed_content + "\n" + assembled_content
+    assembled_content = ""
 
-assembled_content = optimize_imports(assembled_content)
-assembled_content = string_utils.remove_empty_lines(assembled_content)
+    next_content = build_file_content
+    while next_content:
+        (processed_content, next_content) = read_new_content(next_content, imported_files)
+        assembled_content = processed_content + "\n" + assembled_content
 
-file_utils.write_file("build/rebuild.py", assembled_content)
-file_utils.make_executable("build/rebuild.py")
+    assembled_content = optimize_imports(assembled_content)
+    assembled_content = string_utils.remove_empty_lines(assembled_content)
+
+    output_path = os.path.join("build", output_name)
+    file_utils.write_file(output_path, assembled_content)
+    file_utils.make_executable(output_path)

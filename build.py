@@ -1,6 +1,7 @@
+from __future__ import print_function
+
 import argparse
 import os.path
-import six
 import sys
 
 import utils.file_utils as file_utils
@@ -20,12 +21,12 @@ else:
 MVN_OPTS = args["maven"]
 
 ROOT_PROJECT_PATH = file_utils.normalize_path(ROOT_PROJECT_PATH)
-six.print_("Root project path: " + ROOT_PROJECT_PATH)
-six.print_("Additional maven arguments: " + str(MVN_OPTS))
+print("Root project path: " + ROOT_PROJECT_PATH)
+print("Additional maven arguments: " + str(MVN_OPTS))
 
 root_pom_path = os.path.join(ROOT_PROJECT_PATH, "pom.xml")
 if not os.path.exists(root_pom_path):
-    six.print_("ERROR! No root pom.xml find in path", os.path.abspath(ROOT_PROJECT_PATH))
+    print("ERROR! No root pom.xml find in path", os.path.abspath(ROOT_PROJECT_PATH))
     sys.exit(1)
 
 MAVEN_REPO_PATH = mvn_utils.repo_path()
@@ -45,7 +46,7 @@ def get_unique_name(root_project_path):
     return result
 
 
-changed_files = svn_utils.changed_files(ROOT_PROJECT_PATH)
+changed_files = svn_utils.get_local_changed_files(ROOT_PROJECT_PATH)
 important_files = filter(is_important, changed_files)
 
 pom_paths = set([])
@@ -104,15 +105,15 @@ for project in projects:
     src_modification = file_utils.last_modification(project_src_paths)
 
     if (build_date is None) or (build_date < src_modification):
-        six.print_(project, "needs rebuild. Last build update: " + str(build_date))
+        print(project, "needs rebuild. Last build update: " + str(build_date))
         to_rebuild.append(project)
     else:
         to_renew_metadata.append(project)
 
-six.print_("Updating local build time for non-changed projects...")
+print("Updating local build time for non-changed projects...")
 mvn_utils.renew_metadata(to_renew_metadata, MAVEN_REPO_PATH)
 
-six.print_("Rebuilding projects...")
+print("Rebuilding projects...")
 mvn_utils.rebuild(ROOT_PROJECT_PATH, to_rebuild, MVN_OPTS)
 
 file_utils.write_file(in_progress_file, "\n".join(new_in_progress))
