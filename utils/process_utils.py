@@ -7,10 +7,9 @@ import utils.string_utils as string_utils
 
 
 def invoke(command, work_dir="."):
-    if isinstance(command, str):
-        command = command.split()
+    command = prepare_command(command)
 
-    shell = (os.name == 'nt')  # on windows commands like mvn won't work without shell
+    shell = requires_shell()
     p = subprocess.Popen(command,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE,
@@ -37,3 +36,29 @@ def invoke(command, work_dir="."):
         print("WARN! Error output wasn't empty, although the command finished with code 0!")
 
     return output
+
+
+def invoke_attached(command, work_dir="."):
+    command = prepare_command(command)
+
+    shell = requires_shell()
+    p = subprocess.Popen(command,
+                         stderr=subprocess.STDOUT,
+                         cwd=work_dir,
+                         shell=shell)
+
+    p.communicate()
+
+    result_code = p.returncode
+    if result_code != 0:
+        raise Exception('Execution failed with exit code ' + str(result_code))
+
+
+def requires_shell():
+    return os.name == 'nt'  # on windows commands like mvn won't work without shell
+
+
+def prepare_command(command):
+    if isinstance(command, str):
+        return command.split()
+    return command

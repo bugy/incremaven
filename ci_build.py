@@ -65,7 +65,7 @@ def incremental_rebuild(last_revision, current_revision):
     print('Rebuilding revision changes (' + last_revision + ';' + current_revision + ']. Changed projects:')
     print('\n'.join(collections.to_strings(projects)))
 
-    mvn_utils.rebuild(ROOT_PROJECT_PATH, projects, MVN_OPTS)
+    mvn_utils.rebuild(ROOT_PROJECT_PATH, projects, MVN_OPTS, silent=False)
 
 
 current_revision = svn_utils.get_revision(ROOT_PROJECT_PATH)
@@ -80,6 +80,6 @@ if os.path.exists(info_file_path):
         print("Svn revision is the same. Skipping rebuild")
 else:
     print("No previous revision found, rebuilding the whole root project...")
-    mvn_utils.rebuild_root(ROOT_PROJECT_PATH, MVN_OPTS)
+    mvn_utils.rebuild_root(ROOT_PROJECT_PATH, MVN_OPTS, silent=False)
 
 file_utils.write_file(info_file_path, current_revision)

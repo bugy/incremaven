@@ -158,7 +158,7 @@ def repo_folder_path(project, repo_path):
     return folder_path
 
 
-def rebuild(parent_project_path, projects, mvn_opts):
+def rebuild(parent_project_path, projects, mvn_opts, silent=True):
     if not projects:
         print("No projects to build, skipping")
         return None
@@ -189,15 +189,20 @@ def rebuild(parent_project_path, projects, mvn_opts):
             project_names = [(":" + project.artifact_id) for project in child_projects]
             project_names_string = ",".join(project_names)
 
-            process_utils.invoke(
-                "mvn clean install -f {} {} -pl {}".format(root_path, mvn_opts, project_names_string),
-                parent_project_path)
+            command = "mvn clean install -f {} {} -pl {}".format(root_path, mvn_opts, project_names_string)
+            if silent:
+                process_utils.invoke(command, parent_project_path)
+            else:
+                process_utils.invoke_attached(command, parent_project_path)
 
 
-def rebuild_root(parent_project_path, mvn_opts):
-    process_utils.invoke(
-        "mvn clean install " + mvn_opts,
-        parent_project_path)
+def rebuild_root(parent_project_path, mvn_opts, silent=True):
+    command = "mvn clean install " + mvn_opts
+
+    if silent:
+        process_utils.invoke(command, parent_project_path)
+    else:
+        process_utils.invoke_attached(command, parent_project_path)
 
 
 def split_by_dependencies(projects, project_roots):
