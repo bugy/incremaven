@@ -15,7 +15,7 @@ if it's outdated.
 ## Usage
 There are 3 ways of using the script:
 
-1. Download and use [rebuild.py](https://github.com/bugy/rebuilder/releases/download/1.1.0/rebuild.py). It's a single and minified script, based on the sources of the repository
+1. Download and use _rebuild.py_ file from [Latest releases](https://github.com/bugy/rebuilder/releases/latest). It's a single and minified script, based on the sources of the repository
 2. Checkout the project and simply run *build.py* (instead of #1)
 3. IntellijIDEA users can copy run config (*idea-rebuilder.xml*) to .idea/runConfigurations and specify path to *rebuild.py* (from #1)
 
