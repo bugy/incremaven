@@ -19,6 +19,7 @@ There are 3 ways of using the script:
 2. Checkout the project and simply run *build.py* (instead of #1)
 3. IntellijIDEA users can copy run config (*idea-rebuilder.xml*) to .idea/runConfigurations and specify path to *rebuild.py* (from #1)
 
-By default the script searches for maven projects in a current directory. The directory can be changed using *-r* parameter (e.g. -r /home/username/path/to/project)
-
-You can pass maven arguments to the script, using --maven="" arg, (e.g. --maven="-fae -DskipTests")
+Arguments:
+* -r (--root_path) - the path to the project. By default, if argument is missing, the script will run in current directory
+* -m (--maven) - pass additional arguments to maven execution. E.g. --maven="-fae -DskipTests"
+* -o (--root_only) - a flag (no value needed), making the script to build only the child projects, which are submodules (direct or nested) of the root project.
