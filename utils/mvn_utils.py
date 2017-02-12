@@ -276,24 +276,28 @@ def split_by_dependencies(projects, project_roots):
 def analyze_project_roots(projects):
     project_roots = {}
     for project in projects:
-        project_root_path = project.get_path()
+        project_roots[project] = get_project_root_path(project.get_path())
 
-        while not file_utils.is_root(project_root_path):
-            parent_path = os.path.dirname(project_root_path)
-
-            parent_pom_path = os.path.join(parent_path, "pom.xml")
-            if not os.path.exists(parent_pom_path):
-                break
-
-            sub_modules = read_sub_modules(parent_path)
-            if not (os.path.basename(project_root_path) in sub_modules):
-                break
-
-            project_root_path = parent_path
-
-        root_path_str = project_root_path
-        project_roots[project] = root_path_str
     return project_roots
+
+
+def get_project_root_path(project_path):
+    project_root_path = project_path
+
+    while not file_utils.is_root(project_root_path):
+        parent_path = os.path.dirname(project_root_path)
+
+        parent_pom_path = os.path.join(parent_path, "pom.xml")
+        if not os.path.exists(parent_pom_path):
+            break
+
+        sub_modules = read_sub_modules(parent_path)
+        if not (os.path.basename(project_root_path) in sub_modules):
+            break
+
+        project_root_path = parent_path
+
+    return project_root_path
 
 
 def get_direct_dependencies(project):

@@ -1,33 +1,12 @@
-import argparse
 import os.path
-import sys
 
+import common
 import utils.collections as collections
 import utils.file_utils as file_utils
 import utils.mvn_utils as mvn_utils
 import utils.svn_utils as svn_utils
 
-parser = argparse.ArgumentParser(description="Rebuild of complex (maven) projects.")
-parser.add_argument("-r", "--rootPath", help="path to the root project", default=".")
-parser.add_argument("-m", "--maven", help="maven parameters to pass to mvn command", default="")
-args = vars(parser.parse_args())
-
-if args["rootPath"]:
-    ROOT_PROJECT_PATH = args["rootPath"]
-else:
-    ROOT_PROJECT_PATH = "."
-
-MVN_OPTS = args["maven"]
-
-ROOT_PROJECT_PATH = file_utils.normalize_path(ROOT_PROJECT_PATH)
-print("Root project path: " + ROOT_PROJECT_PATH)
-print("Additional maven arguments: " + str(MVN_OPTS))
-
-root_pom_path = os.path.join(ROOT_PROJECT_PATH, "pom.xml")
-if not os.path.exists(root_pom_path):
-    print("ERROR! No root pom.xml find in path", os.path.abspath(ROOT_PROJECT_PATH))
-    sys.exit(1)
-
+(ROOT_PROJECT_PATH, MVN_OPTS, ROOT_ONLY) = common.parse_options()
 MAVEN_REPO_PATH = mvn_utils.repo_path()
 
 
@@ -56,11 +35,7 @@ def incremental_rebuild(last_revision, current_revision):
 
             parent_path = os.path.dirname(parent_path)
 
-    projects = []
-
-    for pom_path in pom_paths:
-        project = mvn_utils.create_project(pom_path)
-        projects.append(project)
+    projects = common.to_mvn_projects(pom_paths, ROOT_PROJECT_PATH, ROOT_ONLY)
 
     print('Rebuilding revision changes (' + last_revision + ';' + current_revision + ']. Changed projects:')
     print('\n'.join(collections.to_strings(projects)))
