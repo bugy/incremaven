@@ -84,7 +84,10 @@ def read_element(element):
 
         return as_map
     else:
-        return element.text.strip()
+        if element.text:
+            return element.text.strip()
+        else:
+            return ''
 
 
 def namespace(element):

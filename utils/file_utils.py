@@ -1,10 +1,9 @@
 import datetime
+import io
 import os
 import os.path
 import stat
 import time
-
-import io
 
 
 def modification_date(file_path):
@@ -123,3 +122,10 @@ def equal(path1, path2):
             file2.close()
 
     return True
+
+
+def prepare_folder(folder_path):
+    path = normalize_path(folder_path)
+
+    if not os.path.exists(path):
+        os.makedirs(path)

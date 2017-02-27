@@ -17,6 +17,7 @@ class MavenProject(model.Project):
     packaging = None
     build_directory = None
     source_folders = None
+    artifact_name = None
 
     def __init__(self, artifact_id, group, version, pom_path):
         model.Project.__init__(self,
@@ -48,8 +49,15 @@ class MavenProject(model.Project):
     def set_source_folders(self, value):
         self.source_folders = value
 
+    def set_artifact_name(self, artifact_name):
+        self.artifact_name = artifact_name
+
+    def get_artifact_name(self):
+        return self.artifact_name
+
 
 def create_project(pom_path):
+
     xml_values = xml_utils.find_in_file(pom_path,
                                         ["artifactId",
                                          "version",
@@ -61,9 +69,9 @@ def create_project(pom_path):
                                          "build/sourceDirectory",
                                          "build/testSourceDirectory",
                                          "build/resources/resource/directory",
-                                         "build/testResources/testResource/directory"
+                                         "build/testResources/testResource/directory",
+                                         "build/finalName"
                                          ])
-
     artifact_id = xml_values["artifactId"]
     version = xml_values["version"]
 
@@ -86,35 +94,46 @@ def create_project(pom_path):
     else:
         project.set_build_directory("target")
 
-    source_folders = collect_source_folders(pom_path,
-                                            xml_values["build/sourceDirectory"],
-                                            xml_values["build/testSourceDirectory"],
-                                            xml_values["build/resources/resource/directory"],
-                                            xml_values["build/testResources/testResource/directory"])
+    if xml_values["build/finalName"]:
+        artifact_name = xml_values["build/finalName"]
+        artifact_name += '.' + project.get_packaging()
+    else:
+        artifact_name = get_default_artifact_name(project)
+
+    project.set_artifact_name(artifact_name)
+
+    source_folders = collect_source_folders(pom_path, xml_values)
     project.set_source_folders(source_folders)
 
     return project
 
 
-def collect_source_folders(pom_path, *source_paths):
+def collect_source_folders(pom_path, xml_values):
+    source_folders = set()
+
+    def add_source_folder(xpath, def_value):
+        value = xml_values[xpath]
+        if not value:
+            value = def_value
+
+        if isinstance(value, list):
+            source_folders.update(value)
+        elif value:
+            source_folders.add(value)
+
+    add_source_folder('build/sourceDirectory', os.path.join('src', 'main', 'java'))
+    add_source_folder('build/testSourceDirectory', os.path.join('src', 'test', 'java'))
+    add_source_folder('build/resources/resource/directory', os.path.join('src', 'main', 'resources'))
+    add_source_folder('build/testResources/testResource/directory', os.path.join('src', 'test', 'resources'))
+
     result = [pom_path]
-
-    source_folders = {"src"}
-    for value in source_paths:
-        if value is not None:
-            if isinstance(value, list):
-                source_folders.update(value)
-            elif value:
-                source_folders.add(value)
-
     project_path = os.path.dirname(pom_path)
-    for source_folder in source_folders:
-        if (source_folder != "src") and (source_folder.startswith("src")):
-            continue
+    for folder in source_folders:
+        if not os.path.isabs(folder):
+            folder = os.path.join(project_path, folder)
 
-        source_path = os.path.join(project_path, source_folder)
-        if os.path.exists(source_path):
-            result.append(source_path)
+        if os.path.exists(folder):
+            result.append(folder)
 
     return result
 
@@ -122,12 +141,12 @@ def collect_source_folders(pom_path, *source_paths):
 def repo_artifact_path(project, repo_path):
     artifact_path = repo_folder_path(project, repo_path)
 
-    artifact_name = get_artifact_name(project)
+    artifact_name = get_default_artifact_name(project)
 
     return os.path.join(artifact_path, artifact_name)
 
 
-def get_artifact_name(project):
+def get_default_artifact_name(project):
     """
 
     :type project: MavenProject
@@ -375,7 +394,7 @@ def target_build_date(project):
         return datetime.datetime.today()
 
     target = get_full_build_directory(project)
-    target_artifact_path = os.path.join(target, get_artifact_name(project))
+    target_artifact_path = os.path.join(target, project.get_artifact_name())
     if not os.path.exists(target_artifact_path):
         return None
 
@@ -408,9 +427,31 @@ def renew_metadata(projects, repo_path):
                 "versioning/snapshotVersions/snapshotVersion/updated": current_time
             })
         else:
-            print('WARN! maven-metadata-local.xml not found in local repo for ' + str(
-                project) + '. This is not yet supported')
-
+            local_metadata = '<metadata modelVersion="1.1.0">' + \
+                             '  <groupId>' + project.group + '</groupId>' + \
+                             '  <artifactId>' + project.artifact_id + '</artifactId>' + \
+                             '  <version>' + project.version + '</version>' + \
+                             '  <versioning>' + \
+                             '    <snapshot>' + \
+                             '      <localCopy>true</localCopy>' + \
+                             '    </snapshot>' + \
+                             '    <lastUpdated>' + current_time + '</lastUpdated>' + \
+                             '    <snapshotVersions>' + \
+                             '      <snapshotVersion>' + \
+                             '        <extension>pom</extension>' + \
+                             '        <value>' + project.version + '</value>' + \
+                             '        <updated>' + current_time + '</updated>' + \
+                             '      </snapshotVersion>'
+            if requires_archive(project):
+                local_metadata += '      <snapshotVersion>' + \
+                                  '        <extension>' + project.get_packaging() + '</extension>' + \
+                                  '        <value>' + project.version + '</value>' + \
+                                  '        <updated>' + current_time + '</updated>' + \
+                                  '      </snapshotVersion>'
+            local_metadata += '    </snapshotVersions>' + \
+                              '  </versioning>' + \
+                              '</metadata>'
+            file_utils.write_file(metadata_path, local_metadata)
 
 def find_module(parent_path, module_name):
     if os.path.exists(os.path.join(parent_path, module_name)):
@@ -479,7 +520,7 @@ def is_built(project):
 
     build_directory = get_full_build_directory(project)
 
-    built_artifact_path = os.path.join(build_directory, get_artifact_name(project))
+    built_artifact_path = os.path.join(build_directory, project.get_artifact_name())
 
     return os.path.exists(built_artifact_path)
 
@@ -501,11 +542,14 @@ def fast_install(project, repo_path):
     """
 
     repo_pom = repo_pom_path(project, repo_path)
+
+    file_utils.prepare_folder(os.path.dirname(repo_pom))
+
     shutil.copyfile(project.get_pom_path(), repo_pom)
 
     if requires_archive(project):
         build_directory = get_full_build_directory(project)
-        built_artifact_path = os.path.join(build_directory, get_artifact_name(project))
+        built_artifact_path = os.path.join(build_directory, project.get_artifact_name())
         repo_artifact = repo_artifact_path(project, repo_path)
 
         if (not os.path.exists(repo_artifact)) \
