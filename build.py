@@ -69,25 +69,29 @@ file_utils.write_file(in_progress_file, "\n".join(pom_paths))
 projects = common.to_mvn_projects(pom_paths, ROOT_PROJECT_PATH, ROOT_ONLY)
 
 to_rebuild = []
-to_renew_metadata = []
+to_install = []
 
 for project in projects:
-    build_date = mvn_utils.artifact_build_date(project, MAVEN_REPO_PATH)
+    build_date = mvn_utils.target_build_date(project)
+    if build_date is None:
+        print(str(project) + ' needs rebuild. Artifact is missing in target')
+        to_rebuild.append(project)
+        continue
 
     project_src_paths = mvn_utils.get_buildable_paths(project)
-
     src_modification = file_utils.last_modification(project_src_paths)
 
-    if (build_date is None) or (build_date < src_modification):
-        print(project, "needs rebuild. Last build update: " + str(build_date))
+    if build_date < src_modification:
+        print(str(project) + ' needs rebuild. Last build update: ' + str(build_date))
         to_rebuild.append(project)
     else:
-        to_renew_metadata.append(project)
+        to_install.append(project)
 
-print("Updating local build time for non-changed projects...")
-mvn_utils.renew_metadata(to_renew_metadata, MAVEN_REPO_PATH)
+print('Installing non-changed artifacts to local repository...')
+for project in to_install:
+    mvn_utils.fast_install(project, MAVEN_REPO_PATH)
 
-print("Rebuilding projects...")
+print('Rebuilding projects...')
 mvn_utils.rebuild(ROOT_PROJECT_PATH, to_rebuild, MVN_OPTS)
 
-file_utils.write_file(in_progress_file, "\n".join(new_in_progress))
+file_utils.write_file(in_progress_file, '\n'.join(new_in_progress))

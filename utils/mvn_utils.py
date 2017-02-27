@@ -3,12 +3,12 @@ from __future__ import print_function
 import copy
 import datetime
 import os.path
+import shutil
 
 import model
 import utils.collections as collections
 import utils.file_utils as file_utils
 import utils.process_utils as process_utils
-import utils.string_utils as string_utils
 import utils.xml_utils as xml_utils
 
 
@@ -356,6 +356,10 @@ def repo_path():
 
 
 def requires_archive(project):
+    """
+
+    :rtype: MavenProject
+    """
     buildable_paths = get_buildable_paths(project)
 
     for buildable_path in buildable_paths:
@@ -366,43 +370,16 @@ def requires_archive(project):
     return False
 
 
-def artifact_build_date(project, repo_path):
-    dates = []
+def target_build_date(project):
+    if not requires_archive(project):
+        return datetime.datetime.today()
 
-    pom_path = repo_pom_path(project, repo_path)
-    if os.path.exists(pom_path):
-        # we need to compare files, since maven just copies pom without changing modification date
-        built_pom_content = file_utils.read_file(pom_path)
-        current_pom_content = file_utils.read_file(project.get_pom_path())
-        if string_utils.differ(built_pom_content, current_pom_content, True):
-            return None
-        dates.append(datetime.datetime.today())
-    else:
+    target = get_full_build_directory(project)
+    target_artifact_path = os.path.join(target, get_artifact_name(project))
+    if not os.path.exists(target_artifact_path):
         return None
 
-    if requires_archive(project):
-        artifact_path = repo_artifact_path(project, repo_path)
-
-        if os.path.exists(artifact_path):
-            target = project.get_build_directory()
-
-            project_path = os.path.dirname(project.get_pom_path())
-            target_artifact_path = os.path.join(project_path, target, get_artifact_name(project))
-            if not os.path.exists(target_artifact_path):
-                return None
-
-            target_date = file_utils.modification_date(target_artifact_path)
-            repo_date = file_utils.modification_date(artifact_path)
-
-            install_time_diff = repo_date - target_date
-            if (install_time_diff.seconds > 5) or (install_time_diff.seconds < 0):
-                return None
-
-            dates.append(repo_date)
-        else:
-            return None
-
-    return min(dates)
+    return file_utils.modification_date(target_artifact_path)
 
 
 def get_buildable_paths(project):
@@ -430,3 +407,109 @@ def renew_metadata(projects, repo_path):
                 "versioning/lastUpdated": current_time,
                 "versioning/snapshotVersions/snapshotVersion/updated": current_time
             })
+        else:
+            print('WARN! maven-metadata-local.xml not found in local repo for ' + str(
+                project) + '. This is not yet supported')
+
+
+def find_module(parent_path, module_name):
+    if os.path.exists(os.path.join(parent_path, module_name)):
+        return os.path.join(parent_path, module_name)
+
+    for file in os.listdir(parent_path):
+        file_path = os.path.join(parent_path, file)
+
+        if not os.path.isdir(file_path):
+            continue
+
+        pom_path = os.path.join(file_path, 'pom.xml')
+        if not os.path.exists(pom_path):
+            continue
+
+        xml_values = xml_utils.find_in_file(pom_path,
+                                            ["artifactId"])
+        artifact_id = xml_values["artifactId"]
+        if artifact_id == module_name:
+            return file_path
+
+    return None
+
+
+def gather_all_poms(root_path, root_only):
+    if root_only:
+        def gather_children(parent_project_path):
+            paths = []
+
+            modules = read_sub_modules(parent_project_path)
+            for module in modules:
+                module_path = find_module(parent_project_path, module)
+
+                pom_path = os.path.join(module_path, 'pom.xml')
+                paths.append(pom_path)
+                paths.extend(gather_children(module_path))
+
+            return paths
+
+        result = [os.path.join(root_path, 'pom.xml')]
+        result.extend(gather_children(root_path))
+        return result
+
+    else:
+        result = []
+
+        for root, subdirs, files in os.walk(root_path):
+            for file in files:
+                if file != 'pom.xml':
+                    continue
+
+                pom_path = os.path.join(root, file)
+                result.append(pom_path)
+
+        return result
+
+
+def is_built(project):
+    """
+
+    :type project: MavenProject
+    """
+
+    if not requires_archive(project):
+        return True
+
+    build_directory = get_full_build_directory(project)
+
+    built_artifact_path = os.path.join(build_directory, get_artifact_name(project))
+
+    return os.path.exists(built_artifact_path)
+
+
+def get_full_build_directory(project):
+    build_directory = project.get_build_directory()
+
+    if not os.path.isabs(build_directory):
+        build_directory = os.path.join(project.get_path(), build_directory)
+
+    return build_directory
+
+
+def fast_install(project, repo_path):
+    """
+
+    :type project: MavenProject
+    :type repo_path: str
+    """
+
+    repo_pom = repo_pom_path(project, repo_path)
+    shutil.copyfile(project.get_pom_path(), repo_pom)
+
+    if requires_archive(project):
+        build_directory = get_full_build_directory(project)
+        built_artifact_path = os.path.join(build_directory, get_artifact_name(project))
+        repo_artifact = repo_artifact_path(project, repo_path)
+
+        if (not os.path.exists(repo_artifact)) \
+                or (not file_utils.equal(built_artifact_path, repo_artifact)):
+            shutil.copyfile(built_artifact_path, repo_artifact)
+
+    renew_metadata([project], repo_path)

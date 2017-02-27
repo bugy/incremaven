@@ -4,6 +4,8 @@ import os.path
 import stat
 import time
 
+import io
+
 
 def modification_date(file_path):
     time_string = time.ctime(os.path.getmtime(file_path))
@@ -87,3 +89,37 @@ def last_modification(folder_paths):
                     result = folder_date
 
     return result
+
+
+def equal(path1, path2):
+    if not os.path.exists(path1) or not os.path.exists(path2):
+        return False
+
+    if os.path.getsize(path1) != os.path.getsize(path2):
+        return False
+
+    buf1 = bytearray(4096)
+    buf2 = bytearray(4096)
+    try:
+        file1 = io.open(path1, "rb", 0)
+        file2 = io.open(path2, "rb", 0)
+        while True:
+            numread1 = file1.readinto(buf1)
+            numread2 = file2.readinto(buf2)
+
+            if numread1 != numread2:
+                return False
+
+            if not numread1:
+                break
+
+            if buf1 != buf2:
+                return False
+
+    finally:
+        if file1:
+            file1.close()
+        if file2:
+            file2.close()
+
+    return True

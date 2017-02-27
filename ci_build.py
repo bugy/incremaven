@@ -13,7 +13,7 @@ MAVEN_REPO_PATH = mvn_utils.repo_path()
 def incremental_rebuild(last_revision, current_revision):
     changed_files = svn_utils.get_revision_changed_files(ROOT_PROJECT_PATH, last_revision, current_revision)
 
-    pom_paths = set([])
+    changed_project_poms = set([])
 
     for file_path in changed_files:
         file_path = file_utils.normalize_path(file_path)
@@ -27,7 +27,7 @@ def incremental_rebuild(last_revision, current_revision):
             pom_path = os.path.join(parent_path, "pom.xml")
 
             if os.path.exists(pom_path):
-                pom_paths.add(pom_path)
+                changed_project_poms.add(pom_path)
                 break
 
             if parent_path == ROOT_PROJECT_PATH:
@@ -35,12 +35,30 @@ def incremental_rebuild(last_revision, current_revision):
 
             parent_path = os.path.dirname(parent_path)
 
-    projects = common.to_mvn_projects(pom_paths, ROOT_PROJECT_PATH, ROOT_ONLY)
+    changed_projects = common.to_mvn_projects(changed_project_poms, ROOT_PROJECT_PATH, ROOT_ONLY)
 
     print('Rebuilding revision changes (' + last_revision + ';' + current_revision + ']. Changed projects:')
-    print('\n'.join(collections.to_strings(projects)))
+    print('\n'.join(collections.to_strings(changed_projects)))
 
-    mvn_utils.rebuild(ROOT_PROJECT_PATH, projects, MVN_OPTS, silent=False)
+    all_poms = mvn_utils.gather_all_poms(ROOT_PROJECT_PATH, ROOT_ONLY)
+    unchanged_project_poms = []
+    for pom_path in all_poms:
+        if pom_path in changed_project_poms:
+            continue
+
+        unchanged_project_poms.append(pom_path)
+
+    for pom_path in unchanged_project_poms:
+        unchanged_project = mvn_utils.create_project(pom_path)
+
+        if not mvn_utils.is_built(unchanged_project):
+            print('project ' + str(unchanged_project) + ' was cleaned, sending to rebuild')
+            changed_projects.append(unchanged_project)
+            continue
+
+        mvn_utils.fast_install(unchanged_project, MAVEN_REPO_PATH)
+
+    mvn_utils.rebuild(ROOT_PROJECT_PATH, changed_projects, MVN_OPTS, silent=False)
 
 
 current_revision = svn_utils.get_revision(ROOT_PROJECT_PATH)
