@@ -64,14 +64,20 @@ def optimize_imports(assembled_content):
     return result
 
 
-entry_scripts = {"build.py": "rebuild.py",
-                 "ci_build.py": "ci_rebuild.py"}
+entry_scripts = {'build.py': 'rebuild.py',
+                 'ci_build.py': 'ci_rebuild.py'}
 
 for script_name, output_name in entry_scripts.items():
     build_file_content = file_utils.read_file(script_name)
-    imported_files = ["build"]
+    imported_files = ['build']
 
-    assembled_content = ""
+    assembled_content = ''
+
+    shebang = None
+    if build_file_content.startswith('#!'):
+        splitted_content = build_file_content.split('\n', 1)
+        shebang = splitted_content[0]
+        build_file_content = splitted_content[1]
 
     next_content = build_file_content
     while next_content:
@@ -81,6 +87,9 @@ for script_name, output_name in entry_scripts.items():
     assembled_content = optimize_imports(assembled_content)
     assembled_content = string_utils.remove_empty_lines(assembled_content)
 
-    output_path = os.path.join("build", output_name)
+    if shebang:
+        assembled_content = shebang + '\n' + assembled_content
+
+    output_path = os.path.join('build', output_name)
     file_utils.write_file(output_path, assembled_content)
     file_utils.make_executable(output_path)
