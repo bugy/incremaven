@@ -44,10 +44,11 @@ Main script command is '_mvn clean install -pl [prepared_list]_', but it can be 
 
 ### Local changes analysis
 The starting point for IncreMaven is your uncommitted changes in SVN:
+
 1. For every local svn change, the corresponding project is found
 2. For every changed project (from step 1) it is checked, whether it was modified after the last build
-3a. If the project modification is newer, then the project will be built
-3b. Otherwise it will be skipped (almost, see features for details).
+  * If the project modification is newer, then the project will be built
+  * Otherwise it will be skipped (almost, see features for details).
 
 ### Incoming changes analysis
 At the first launch, IncreMaven builds the whole project and saves current revision information.
