@@ -5,6 +5,8 @@ Local changes build is useful, when you have to modify code for dependent module
 
 Building the incoming changes is useful on the build servers. Usually developers commit changes only for a couple of modules and rebuilding only them is safe enough and can save a lot of building time and resources.
 
+_Changes gathering is based on version control changes, but does extended analysis based on plan file changes_
+
 ## Requirements
 * Linux / Windows
 * Python (2 or 3)
@@ -12,7 +14,7 @@ Building the incoming changes is useful on the build servers. Usually developers
 * svn (1.6+)
 
 ## How to use
-1. Download _rebuild.py_ (local build) or _ci_rebuild.py_ (for build server) file from [Latest releases](https://github.com/bugy/rebuilder/releases/latest)
+1. Download _rebuild.py_ (local build) or _ci_rebuild.py_ (for build server) file from [Latest releases](https://github.com/bugy/incremaven/releases/latest)
 2. Specify the list of the parameters, if needed (see below)
 3. Run the script and see the results :)
 4. Rerun the script each time you want to have up-to-date artifacts
@@ -21,6 +23,7 @@ Building the incoming changes is useful on the build servers. Usually developers
 * -r (--root_path) - the path to the project. By default, if argument is missing, the script will run in current directory
 * -m (--maven) - pass additional arguments to maven execution. E.g. --maven="-fae -DskipTests"
 * -o (--root_only) - a flag (no value needed), making the script to build only the child projects, which are submodules (direct or nested) of the root project.
+* -t (--track_unversioned) - a flag (no value needed) for considering unversioned files in local changes analysis
 
 ### Some tips
 * Pass -fae (fail at end) parameter to maven
@@ -32,6 +35,7 @@ Building the incoming changes is useful on the build servers. Usually developers
 * Build a project even if it's not a child module of the root project (maven doesn't allow it by default)
 * Don't allow maven to replace your built artifacts in your local repository from remote repository
 * Rebuild reverted project, if it was already built with some modifications
+* Quite build mode for local rebuilding (no tons of maven logs)
 
 ## How it works 
 The functionality of the script is based on the maven feature to build only specified projects (with -pl parameter). And the main work of the script is to prepare such list in the best way and build only really needed modules.
@@ -39,7 +43,11 @@ The functionality of the script is based on the maven feature to build only spec
 Main script command is '_mvn clean install -pl [prepared_list]_', but it can be extended based on user options or some internal optimizations. 
 
 ### Local changes analysis
-The starting point for IncreMaven is your uncommitted changes in SVN. The script finds the corresponding projects and checks, whether they were modified after the last build. If the project modification is newer, then the project will be built. Otherwise it will be skipped (almost, see features for details).
+The starting point for IncreMaven is your uncommitted changes in SVN:
+1. For every local svn change, the corresponding project is found
+2. For every changed project (from step 1) it is checked, whether it was modified after the last build
+3a. If the project modification is newer, then the project will be built
+3b. Otherwise it will be skipped (almost, see features for details).
 
 ### Incoming changes analysis
 At the first launch, IncreMaven builds the whole project and saves current revision information.

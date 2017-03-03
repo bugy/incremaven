@@ -53,7 +53,7 @@ new_in_progress = set(pom_paths)
 
 home_folder = os.path.expanduser('~')
 unique_name = get_unique_name(ROOT_PROJECT_PATH)
-in_progress_file = os.path.join(home_folder, '.rebuilder', unique_name)
+in_progress_file = os.path.join(home_folder, '.incremaven', unique_name)
 
 prev_in_progress = []
 if os.path.exists(in_progress_file):
