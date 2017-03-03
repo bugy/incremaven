@@ -7,7 +7,7 @@ import utils.mvn_utils as mvn_utils
 import utils.svn_utils as svn_utils
 import common
 
-(ROOT_PROJECT_PATH, MVN_OPTS, ROOT_ONLY) = common.parse_options()
+(ROOT_PROJECT_PATH, MVN_OPTS, ROOT_ONLY, TRACK_UNVERSIONED) = common.parse_options()
 MAVEN_REPO_PATH = mvn_utils.repo_path()
 
 def is_important(file_path):
@@ -24,7 +24,7 @@ def get_unique_name(root_project_path):
     return result
 
 
-changed_files = svn_utils.get_local_changed_files(ROOT_PROJECT_PATH)
+changed_files = svn_utils.get_local_changed_files(ROOT_PROJECT_PATH, not TRACK_UNVERSIONED)
 important_files = filter(is_important, changed_files)
 
 pom_paths = set([])

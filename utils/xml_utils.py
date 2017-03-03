@@ -10,16 +10,17 @@ def find_in_file(xml_path, x_paths, ignore_namespaces=True):
     :rtype: dict
     """
     tree = ElementTree.parse(xml_path)
-    return find_in_tree(tree, x_paths, ignore_namespaces)
+    root = tree.getroot()
+    return find_in_tree(root, x_paths, ignore_namespaces)
 
 
 def find_in_string(xml_string, x_paths, ignore_namespaces=True):
-    tree = ElementTree.fromstring(xml_string)
-    return find_in_tree(tree, x_paths, ignore_namespaces)
+    root_element = ElementTree.fromstring(xml_string)
+    return find_in_tree(root_element, x_paths, ignore_namespaces)
 
 
-def find_in_tree(tree, x_paths, ignore_namespaces):
-    elements_dict = gather_elements(tree, x_paths, ignore_namespaces)
+def find_in_tree(root_element, x_paths, ignore_namespaces):
+    elements_dict = gather_elements(root_element, x_paths, ignore_namespaces)
 
     result = {}
 
@@ -35,9 +36,8 @@ def find_in_tree(tree, x_paths, ignore_namespaces):
     return result
 
 
-def gather_elements(tree, x_paths, ignore_namespaces):
-    root = tree.getroot()
-    root_ns = namespace(root)
+def gather_elements(root_element, x_paths, ignore_namespaces):
+    root_ns = namespace(root_element)
     ns = {}
 
     if root_ns and ignore_namespaces:
@@ -51,7 +51,7 @@ def gather_elements(tree, x_paths, ignore_namespaces):
         if root_ns and ignore_namespaces:
             search_path = adapt_namespace(x_path, "x")
 
-        elements = root.findall(search_path, ns)
+        elements = root_element.findall(search_path, ns)
         if (elements is not None) and elements:
             result[x_path] = elements
         else:
@@ -61,6 +61,8 @@ def gather_elements(tree, x_paths, ignore_namespaces):
 
 
 def read_element(element):
+    attributes_map = dict(element.attrib)
+
     sub_elements = list(element)
     if len(sub_elements) > 0:
         as_map = {}
@@ -82,11 +84,22 @@ def read_element(element):
             else:
                 as_map[key] = value
 
+        if attributes_map:
+            as_map.update(attributes_map)
+
         return as_map
     else:
         if element.text:
+            if attributes_map:
+                attributes_map['text'] = element.text.strip()
+                return attributes_map
+
             return element.text.strip()
+
         else:
+            if attributes_map:
+                return attributes_map
+
             return ''
 
 
@@ -97,15 +110,22 @@ def namespace(element):
 
 def adapt_namespace(x_path, prefix):
     path_elements = x_path.split("/")
-    path_elements = [(prefix + ":" + element)
-                     for element in path_elements]
 
-    return "/".join(path_elements)
+    result = []
+
+    for element in path_elements:
+        if element == '*':
+            result.append(element)
+            continue
+
+        result.append(prefix + ":" + element)
+
+    return "/".join(result)
 
 
 def replace_in_tree(file_path, replace_dict, ignore_namespaces=True):
     tree = ElementTree.parse(file_path)
-    elements_dict = gather_elements(tree, replace_dict.keys(), ignore_namespaces)
+    elements_dict = gather_elements(tree.getroot(), replace_dict.keys(), ignore_namespaces)
 
     for xpath, elements in elements_dict.items():
         if elements is None:

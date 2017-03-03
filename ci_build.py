@@ -6,7 +6,7 @@ import utils.file_utils as file_utils
 import utils.mvn_utils as mvn_utils
 import utils.svn_utils as svn_utils
 
-(ROOT_PROJECT_PATH, MVN_OPTS, ROOT_ONLY) = common.parse_options()
+(ROOT_PROJECT_PATH, MVN_OPTS, ROOT_ONLY, track_unversioned) = common.parse_options()
 MAVEN_REPO_PATH = mvn_utils.repo_path()
 
 
