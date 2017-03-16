@@ -210,7 +210,7 @@ def rebuild(parent_project_path, projects, mvn_opts, silent=True):
 
             command = "mvn clean install -f {} {} -pl {}".format(root_path, mvn_opts, project_names_string)
             if silent:
-                process_utils.invoke(command, parent_project_path)
+                process_utils.invoke(command, parent_project_path, exit_on_failure=True)
             else:
                 process_utils.invoke_attached(command, parent_project_path)
 
@@ -219,7 +219,7 @@ def rebuild_root(parent_project_path, mvn_opts, silent=True):
     command = "mvn clean install " + mvn_opts
 
     if silent:
-        process_utils.invoke(command, parent_project_path)
+        process_utils.invoke(command, parent_project_path, exit_on_failure=True)
     else:
         process_utils.invoke_attached(command, parent_project_path)
 

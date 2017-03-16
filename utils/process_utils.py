@@ -2,11 +2,12 @@ from __future__ import print_function
 
 import os
 import subprocess
+import sys
 
 import utils.string_utils as string_utils
 
 
-def invoke(command, work_dir="."):
+def invoke(command, work_dir=".", exit_on_failure=False):
     command = prepare_command(command)
 
     shell = requires_shell()
@@ -24,13 +25,20 @@ def invoke(command, work_dir="."):
     result_code = p.returncode
     if result_code != 0:
         message = 'Execution failed with exit code ' + str(result_code)
-        print(message)
+
+        if not exit_on_failure:
+            print(message)
+
         print(string_utils.utf_to_stdout(output))
 
         if error:
             print(" --- ERRORS ---:")
             print(string_utils.utf_to_stdout(error))
-        raise Exception(message)
+
+        if exit_on_failure:
+            sys.exit(result_code)
+        else:
+            raise Exception(message)
 
     if error:
         print("WARN! Error output wasn't empty, although the command finished with code 0!")
@@ -51,7 +59,7 @@ def invoke_attached(command, work_dir="."):
 
     result_code = p.returncode
     if result_code != 0:
-        raise Exception('Execution failed with exit code ' + str(result_code))
+        sys.exit(result_code)
 
 
 def requires_shell():
