@@ -6,14 +6,13 @@ import common
 import utils.collections as collections
 import utils.file_utils as file_utils
 import utils.mvn_utils as mvn_utils
-import utils.svn_utils as svn_utils
 
-(ROOT_PROJECT_PATH, MVN_OPTS, ROOT_ONLY, track_unversioned) = common.parse_options()
+(ROOT_PROJECT_PATH, MVN_OPTS, ROOT_ONLY, track_unversioned, vcs_gateway) = common.parse_options()
 MAVEN_REPO_PATH = mvn_utils.repo_path()
 
 
 def incremental_rebuild(last_revision, current_revision):
-    changed_files = svn_utils.get_revision_changed_files(ROOT_PROJECT_PATH, last_revision, current_revision)
+    changed_files = vcs_gateway.get_revision_changed_files(ROOT_PROJECT_PATH, last_revision, current_revision)
 
     changed_project_poms = set([])
 
@@ -63,7 +62,7 @@ def incremental_rebuild(last_revision, current_revision):
     mvn_utils.rebuild(ROOT_PROJECT_PATH, changed_projects, MVN_OPTS, silent=False)
 
 
-current_revision = svn_utils.get_revision(ROOT_PROJECT_PATH)
+current_revision = vcs_gateway.get_revision(ROOT_PROJECT_PATH)
 
 info_file_path = os.path.join(ROOT_PROJECT_PATH, "_ci_rebuild.info")
 if os.path.exists(info_file_path):

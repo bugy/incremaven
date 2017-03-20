@@ -3,7 +3,9 @@ import os.path
 import sys
 
 import utils.file_utils as file_utils
+import utils.git_utils as git_utils
 import utils.mvn_utils as mvn_utils
+import utils.svn_utils as svn_utils
 
 
 def parse_options():
@@ -14,6 +16,7 @@ def parse_options():
                         action='store_true')
     parser.add_argument("-t", "--track_unversioned", help="also consider local changes in unversioned files",
                         action='store_true')
+    parser.add_argument("-c", "--vcs", help="version control system", choices=['svn', 'git'])
     args = vars(parser.parse_args())
 
     if args["root_path"]:
@@ -35,7 +38,21 @@ def parse_options():
         print("ERROR! No root pom.xml find in path", os.path.abspath(root_project_path))
         sys.exit(1)
 
-    return (root_project_path, mvn_opts, root_only, track_unversioned)
+    if args['vcs']:
+        if args['vcs'] == 'git':
+            vcs_gateway = git_utils.GitGateway()
+        else:
+            vcs_gateway = svn_utils.SvnGateway()
+    else:
+        if svn_utils.is_svn_repo(root_project_path):
+            vcs_gateway = svn_utils.SvnGateway()
+        elif git_utils.is_git_repo(root_project_path):
+            vcs_gateway = git_utils.GitGateway()
+        else:
+            print("Couldn't resolve VCS type, please specify it explicitly using -c argument")
+            sys.exit(-1)
+
+    return (root_project_path, mvn_opts, root_only, track_unversioned, vcs_gateway)
 
 
 def to_mvn_projects(pom_paths, root_path, root_only):

@@ -46,6 +46,22 @@ def invoke(command, work_dir=".", exit_on_failure=False):
     return output
 
 
+def check_call(command, work_dir="."):
+    command = prepare_command(command)
+
+    shell = requires_shell()
+    p = subprocess.Popen(command,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         cwd=work_dir,
+                         shell=shell)
+
+    p.communicate()
+    result_code = p.returncode
+
+    return result_code == 0
+
+
 def invoke_attached(command, work_dir="."):
     command = prepare_command(command)
 
