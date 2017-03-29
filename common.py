@@ -1,5 +1,6 @@
 import argparse
 import os.path
+import re
 import sys
 
 import utils.file_utils as file_utils
@@ -52,7 +53,26 @@ def parse_options():
             print("Couldn't resolve VCS type, please specify it explicitly using -c argument")
             sys.exit(-1)
 
-    return (root_project_path, mvn_opts, root_only, track_unversioned, vcs_gateway)
+    if '-Dmaven.repo.local=' in mvn_opts:
+        mvn_repo_path = get_arg_value(mvn_opts, '-Dmaven.repo.local')
+    else:
+        mvn_repo_path = mvn_utils.def_repo_path()
+
+    return (root_project_path, mvn_repo_path, mvn_opts, root_only, track_unversioned, vcs_gateway)
+
+
+def get_arg_value(options_string, argument):
+    pattern = re.compile(argument + '(\s+|=)(.*)')
+
+    for match in pattern.finditer(options_string):
+        opts_end = match.group(2)
+
+        if opts_end.startswith('"'):
+            return opts_end[1:opts_end.index('"', 1)]
+        elif opts_end.startswith("'"):
+            return opts_end[1:opts_end.index("'", 1)]
+        else:
+            return re.split('[\s\b]', opts_end)[0]
 
 
 def to_mvn_projects(pom_paths, root_path, root_only):

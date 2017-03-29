@@ -4,12 +4,11 @@ from __future__ import print_function
 
 import os.path
 
+import common
 import utils.file_utils as file_utils
 import utils.mvn_utils as mvn_utils
-import common
 
-(ROOT_PROJECT_PATH, MVN_OPTS, ROOT_ONLY, TRACK_UNVERSIONED, vcs_gateway) = common.parse_options()
-MAVEN_REPO_PATH = mvn_utils.repo_path()
+(ROOT_PROJECT_PATH, MAVEN_REPO_PATH, MVN_OPTS, ROOT_ONLY, TRACK_UNVERSIONED, vcs_gateway) = common.parse_options()
 
 def is_important(file_path):
     return not file_path.endswith(".iml")

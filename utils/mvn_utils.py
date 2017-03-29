@@ -358,7 +358,7 @@ def read_sub_modules(module_path):
     return sub_modules
 
 
-def repo_path():
+def def_repo_path():
     home = os.path.expanduser("~")
     maven_path = os.path.join(home, ".m2")
 
