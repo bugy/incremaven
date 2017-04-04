@@ -35,15 +35,19 @@ class SvnGateway():
     def svn_xml_status_to_files(self, found_entries, ignore_unversioned=True):
         result = []
 
-        for entry in found_entries:
-            status_info = entry['wc-status']
-            status = status_info['item']
+        if found_entries:
+            if not isinstance(found_entries, list):
+                found_entries = [found_entries]
 
-            if ignore_unversioned and (status == 'unversioned'):
-                continue
+            for entry in found_entries:
+                status_info = entry['wc-status']
+                status = status_info['item']
 
-            path = entry['path']
-            result.append(path)
+                if ignore_unversioned and (status == 'unversioned'):
+                    continue
+
+                path = entry['path']
+                result.append(path)
 
         return result
 
