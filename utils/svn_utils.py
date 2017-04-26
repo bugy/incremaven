@@ -12,7 +12,7 @@ class SvnGateway():
         found_results = xml_utils.find_in_string(status_info, [entries_xpath])
         entries = found_results[entries_xpath]
 
-        return self.svn_xml_status_to_files(entries, ignore_unversioned)
+        return self.svn_xml_status_to_files(entries, abs_path, ignore_unversioned)
 
     def svn_status_to_files(self, all_lines):
         result = []
@@ -32,7 +32,7 @@ class SvnGateway():
 
         return result
 
-    def svn_xml_status_to_files(self, found_entries, ignore_unversioned=True):
+    def svn_xml_status_to_files(self, found_entries, abs_path, ignore_unversioned=True):
         result = []
 
         if found_entries:
@@ -47,6 +47,12 @@ class SvnGateway():
                     continue
 
                 path = entry['path']
+
+                if status in ['normal', 'modified']:
+                    full_path = os.path.join(abs_path, path)
+                    if os.path.isdir(full_path):
+                        continue
+
                 result.append(path)
 
         return result
