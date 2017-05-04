@@ -57,12 +57,35 @@ class SvnGateway():
 
         return result
 
-    def get_revision_changed_files(self, abs_path, from_revision, to_revision):
-        changed_files = process_utils.invoke(
-            ['svn', 'diff', '--summarize', '-r' + from_revision + ':' + to_revision, abs_path])
-        lines = changed_files.split('\n')
+    def svn_xml_diff_to_files(self, paths, abs_path):
+        result = []
 
-        return self.svn_status_to_files(lines)
+        if paths:
+            if not isinstance(paths, list):
+                paths = [paths]
+
+            for path in paths:
+                status = path['item']
+                path = path['text']
+
+                if status in ['none', 'modified']:
+                    full_path = os.path.join(abs_path, path)
+                    if os.path.isdir(full_path):
+                        continue
+
+                result.append(path)
+
+        return result
+
+    def get_revision_changed_files(self, abs_path, from_revision, to_revision):
+        status_info = process_utils.invoke(
+            ['svn', 'diff', '--summarize', '--xml', '-r' + from_revision + ':' + to_revision, abs_path])
+
+        entries_xpath = '*/path'
+        found_results = xml_utils.find_in_string(status_info, [entries_xpath])
+        entries = found_results[entries_xpath]
+
+        return self.svn_xml_diff_to_files(entries, abs_path)
 
     def get_revision(self, project_path):
         svn_info = process_utils.invoke(['svn', 'info', project_path])
