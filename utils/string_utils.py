@@ -34,7 +34,7 @@ def trim_text(text):
 
 
 def utf_to_stdout(utf_string):
-    if sys.stdout.encoding != 'utf-8':
+    if (sys.stdout.encoding is not None) and (sys.stdout.encoding != 'utf-8'):
         return utf_string.encode('utf').decode(sys.stdout.encoding, 'replace')
 
     return utf_string
