@@ -57,7 +57,6 @@ class MavenProject(model.Project):
 
 
 def create_project(pom_path):
-
     xml_values = xml_utils.find_in_file(pom_path,
                                         ["artifactId",
                                          "version",
@@ -208,7 +207,8 @@ def rebuild(parent_project_path, projects, mvn_opts, silent=True):
             project_names = [(":" + project.artifact_id) for project in child_projects]
             project_names_string = ",".join(project_names)
 
-            command = "mvn clean install -f {} {} -pl {}".format(root_path, mvn_opts, project_names_string)
+            root_pom_path = os.path.join(root_path, 'pom.xml')
+            command = 'mvn clean install -f {} {} -pl {}'.format(root_pom_path, mvn_opts, project_names_string)
             if silent:
                 process_utils.invoke(command, parent_project_path, exit_on_failure=True)
             else:
@@ -255,7 +255,7 @@ def split_by_dependencies(projects, project_roots):
             remaining_projects.remove(project)
 
         if not current_level:
-            raise Exception(
+            raise IncorrectConfigException(
                 "Couldn't build dependency sequence. Most probably cyclic dependency found in: " + str(
                     remaining_projects))
 
@@ -453,6 +453,7 @@ def renew_metadata(projects, repo_path):
                               '</metadata>'
             file_utils.write_file(metadata_path, local_metadata)
 
+
 def find_module(parent_path, module_name):
     if os.path.exists(os.path.join(parent_path, module_name)):
         return os.path.join(parent_path, module_name)
@@ -484,6 +485,12 @@ def gather_all_poms(root_path, root_only):
             modules = read_sub_modules(parent_project_path)
             for module in modules:
                 module_path = find_module(parent_project_path, module)
+
+                if not (module_path and os.path.exists(module_path)):
+                    raise IncorrectConfigException(
+                        "Child module '{}' not found. Check parent pom file: {}".format(
+                            module,
+                            os.path.join(parent_project_path, 'pom.xml')))
 
                 pom_path = os.path.join(module_path, 'pom.xml')
                 paths.append(pom_path)
@@ -557,3 +564,7 @@ def fast_install(project, repo_path):
             shutil.copyfile(built_artifact_path, repo_artifact)
 
     renew_metadata([project], repo_path)
+
+
+class IncorrectConfigException(Exception):
+    """Raised, when maven configuration or structure is invalid"""

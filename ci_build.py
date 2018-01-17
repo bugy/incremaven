@@ -2,12 +2,15 @@
 
 import os.path
 
+import sys
+
 import common
 import utils.collections as collections
 import utils.file_utils as file_utils
 import utils.mvn_utils as mvn_utils
 
 (ROOT_PROJECT_PATH, MAVEN_REPO_PATH, MVN_OPTS, ROOT_ONLY, track_unversioned, vcs_gateway) = common.parse_options()
+
 
 def incremental_rebuild(last_revision, current_revision):
     changed_files = vcs_gateway.get_revision_changed_files(ROOT_PROJECT_PATH, last_revision, current_revision)
@@ -67,7 +70,11 @@ if os.path.exists(info_file_path):
     last_revision = file_utils.read_file(info_file_path).strip()
 
     if last_revision != current_revision:
-        incremental_rebuild(last_revision, current_revision)
+        try:
+            incremental_rebuild(last_revision, current_revision)
+        except mvn_utils.IncorrectConfigException as e:
+            print('ERROR! {}'.format(e))
+            sys.exit(-1)
     else:
         print("Svn revision is the same. Skipping rebuild")
 else:

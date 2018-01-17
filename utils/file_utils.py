@@ -30,10 +30,10 @@ def is_root(path):
 def normalize_path(path_string):
     result = os.path.expanduser(path_string)
 
-    if os.path.isabs(result):
-        return result
+    if not os.path.isabs(result):
+        result = os.path.abspath(result)
 
-    return os.path.abspath(result)
+    return os.path.normpath(result)
 
 
 def read_file(filename):
