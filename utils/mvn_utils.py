@@ -184,36 +184,43 @@ def rebuild(parent_project_path, projects, mvn_opts, silent=True):
 
     project_roots = analyze_project_roots(projects)
 
-    levels = None
+    levels = []
 
     if len(set(project_roots.values())) > 1:
-        levels = split_by_dependencies(projects, project_roots)
+        dependency_levels = split_by_dependencies(projects, project_roots)
         print("Complex structure detected. Rebuilding in several steps")
 
-        for i in range(0, len(levels)):
-            print("Step " + str(i) + ": ")
-            print(collections.to_strings(levels[i]))
+        for i in range(0, len(dependency_levels)):
+            level = dependency_levels[i]
+
+            grouped_by_root = {}
+            for project in level:
+                root = project_roots[project]
+                if not (root in grouped_by_root):
+                    grouped_by_root[root] = []
+                grouped_by_root[root].append(project)
+
+            print("Step " + str(i) + ":")
+
+            for root_path, child_projects in grouped_by_root.items():
+                rel_root_path = os.path.relpath(root_path, parent_project_path)
+                print('\t' + rel_root_path + ': ' + str(collections.to_strings(child_projects)))
+                levels.append((root_path, child_projects))
+
     else:
-        levels = [project_roots.keys()]
+        root_value = list(project_roots.values())[0]
+        levels.append((root_value, project_roots.keys()))
 
-    for level in levels:
-        grouped_by_root = {}
-        for project in level:
-            root = project_roots[project]
-            if not (root in grouped_by_root):
-                grouped_by_root[root] = []
-            grouped_by_root[root].append(project)
+    for root_path, child_projects in levels:
+        project_names = [(":" + project.artifact_id) for project in child_projects]
+        project_names_string = ",".join(project_names)
 
-        for root_path, child_projects in grouped_by_root.items():
-            project_names = [(":" + project.artifact_id) for project in child_projects]
-            project_names_string = ",".join(project_names)
-
-            root_pom_path = os.path.join(root_path, 'pom.xml')
-            command = 'mvn clean install -f {} {} -pl {}'.format(root_pom_path, mvn_opts, project_names_string)
-            if silent:
-                process_utils.invoke(command, parent_project_path, exit_on_failure=True)
-            else:
-                process_utils.invoke_attached(command, parent_project_path)
+        root_pom_path = os.path.join(root_path, 'pom.xml')
+        command = 'mvn clean install -f {} {} -pl {}'.format(root_pom_path, mvn_opts, project_names_string)
+        if silent:
+            process_utils.invoke(command, parent_project_path, exit_on_failure=True)
+        else:
+            process_utils.invoke_attached(command, parent_project_path)
 
 
 def rebuild_root(parent_project_path, mvn_opts, silent=True):
