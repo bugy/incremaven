@@ -4,6 +4,7 @@ import copy
 import datetime
 import os.path
 import shutil
+import xml
 
 import model
 import utils.collections as collections
@@ -421,12 +422,18 @@ def renew_metadata(projects, repo_path):
 
         metadata_path = os.path.join(project_repo_path, "maven-metadata-local.xml")
 
-        if os.path.exists(metadata_path):
-            xml_utils.replace_in_tree(metadata_path, {
-                "versioning/lastUpdated": current_time,
-                "versioning/snapshotVersions/snapshotVersion/updated": current_time
-            })
-        else:
+        update_file = os.path.exists(metadata_path)
+        if update_file:
+            try:
+                xml_utils.replace_in_tree(metadata_path, {
+                    "versioning/lastUpdated": current_time,
+                    "versioning/snapshotVersions/snapshotVersion/updated": current_time
+                })
+            except xml.etree.ElementTree.ParseError:
+                print(project.artifact_id + ' metadata is broken, rewriting')
+                update_file = False
+
+        if not update_file:
             local_metadata = '<metadata modelVersion="1.1.0">' + \
                              '  <groupId>' + project.group + '</groupId>' + \
                              '  <artifactId>' + project.artifact_id + '</artifactId>' + \
